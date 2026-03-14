@@ -1,0 +1,4 @@
+#!/bin/sh
+# Wrapper to bypass npm argument swallowing
+basedir=$(dirname "$0")
+node "$basedir/bin/cli.js" "$@"

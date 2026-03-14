@@ -1,0 +1,1447 @@
+const actionsGrid = document.getElementById('actionsGrid');
+const actionSearchInput = document.getElementById('actionSearchInput');
+const actionsMeta = document.getElementById('actionsMeta');
+const actionStatus = document.getElementById('actionStatus');
+const toast = document.getElementById('toast');
+const logsOutput = document.getElementById('logsOutput');
+const clearLogsBtn = document.getElementById('clearLogsBtn');
+const stopBtn = document.getElementById('stopBtn');
+const runState = document.getElementById('runState');
+const backupPathHint = document.getElementById('backupPathHint');
+const restorePathHint = document.getElementById('restorePathHint');
+const gatewayStatusBadge = document.getElementById('gatewayStatusBadge');
+const gatewayStatusDetail = document.getElementById('gatewayStatusDetail');
+const gatewayRefreshBtn = document.getElementById('gatewayRefreshBtn');
+const modalBackdrop = document.getElementById('modalBackdrop');
+const passwordModal = document.getElementById('passwordModal');
+const passwordModalTitle = document.getElementById('passwordModalTitle');
+const passwordModalText = document.getElementById('passwordModalText');
+const passwordModalInput = document.getElementById('passwordModalInput');
+const passwordRememberToggle = document.getElementById('passwordRememberToggle');
+const passwordModalError = document.getElementById('passwordModalError');
+const passwordModalCancelBtn = document.getElementById('passwordModalCancelBtn');
+const passwordModalConfirmBtn = document.getElementById('passwordModalConfirmBtn');
+const confirmModal = document.getElementById('confirmModal');
+const confirmModalText = document.getElementById('confirmModalText');
+const confirmModalCancelBtn = document.getElementById('confirmModalCancelBtn');
+const confirmModalConfirmBtn = document.getElementById('confirmModalConfirmBtn');
+
+let currentContext = null;
+let running = false;
+let activeActionId = null;
+const actionById = new Map();
+let toastTimer = null;
+const MAX_LOG_LINES = 80;
+let logLines = [];
+const RUN_SYNC_INTERVAL_MS = 2000;
+const GATEWAY_STATUS_POLL_MS = 12000;
+let runWatchdogId = null;
+let runWatchdogBusy = false;
+let gatewayPollId = null;
+let gatewayPollBusy = false;
+let allActions = [];
+let actionLru = [];
+
+const GROUP_ORDER = {
+  easy: 1,
+  tools: 2,
+  danger: 3,
+};
+const ACTION_LRU_STORAGE_KEY = 'reclaw.actions.lru.v1';
+const ACTION_LRU_MAX = 200;
+const PASSWORD_STORAGE_KEY = 'reclaw.saved-password.v1';
+
+const isWindowsPlatform =
+  typeof navigator !== 'undefined' && /win/i.test(`${navigator.platform || ''} ${navigator.userAgent || ''}`);
+if (isWindowsPlatform) {
+  document.documentElement.classList.add('platform-win');
+}
+
+function loadSavedPassword() {
+  try {
+    return String(window.localStorage.getItem(PASSWORD_STORAGE_KEY) || '');
+  } catch (_) {
+    return '';
+  }
+}
+
+function savePassword(value) {
+  try {
+    window.localStorage.setItem(PASSWORD_STORAGE_KEY, String(value || ''));
+  } catch (_) {
+    // best effort only
+  }
+}
+
+function clearSavedPassword() {
+  try {
+    window.localStorage.removeItem(PASSWORD_STORAGE_KEY);
+  } catch (_) {
+    // best effort only
+  }
+}
+
+function loadActionLru() {
+  try {
+    const raw = window.localStorage.getItem(ACTION_LRU_STORAGE_KEY);
+    if (!raw) {
+      return [];
+    }
+
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed
+      .filter((entry) => typeof entry === 'string' && entry.trim().length > 0)
+      .slice(0, ACTION_LRU_MAX);
+  } catch (_) {
+    return [];
+  }
+}
+
+function saveActionLru() {
+  try {
+    window.localStorage.setItem(
+      ACTION_LRU_STORAGE_KEY,
+      JSON.stringify(actionLru.slice(0, ACTION_LRU_MAX)),
+    );
+  } catch (_) {
+    // best effort only
+  }
+}
+
+function touchActionLru(actionId) {
+  if (!actionId) {
+    return;
+  }
+
+  const next = [actionId, ...actionLru.filter((entry) => entry !== actionId)]
+    .slice(0, ACTION_LRU_MAX);
+
+  actionLru = next;
+  saveActionLru();
+}
+
+function sortActions(actions) {
+  const lruIndex = new Map(actionLru.map((id, index) => [id, index]));
+
+  return [...actions].sort((left, right) => {
+    const leftPriority = lruIndex.has(left.id)
+      ? lruIndex.get(left.id)
+      : Number.MAX_SAFE_INTEGER;
+    const rightPriority = lruIndex.has(right.id)
+      ? lruIndex.get(right.id)
+      : Number.MAX_SAFE_INTEGER;
+
+    if (leftPriority !== rightPriority) {
+      return leftPriority - rightPriority;
+    }
+
+    const leftRank = GROUP_ORDER[left.group] || 2;
+    const rightRank = GROUP_ORDER[right.group] || 2;
+    if (leftRank !== rightRank) {
+      return leftRank - rightRank;
+    }
+    return left.label.localeCompare(right.label);
+  });
+}
+
+function normalizeSearchQuery(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function setActionsMeta(total, shown, query) {
+  if (!actionsMeta) {
+    return;
+  }
+
+  if (total === 0) {
+    actionsMeta.textContent = 'No actions available.';
+    return;
+  }
+
+  if (query && shown === 0) {
+    actionsMeta.textContent = `No matches for "${query}".`;
+    return;
+  }
+
+  if (shown < total) {
+    actionsMeta.textContent = `Showing ${shown} of ${total}. Refine search to find more.`;
+    return;
+  }
+
+  actionsMeta.textContent = `Showing ${shown} action${shown === 1 ? '' : 's'}.`;
+}
+
+function renderVisibleActions() {
+  const sorted = sortActions(allActions);
+  const query = normalizeSearchQuery(actionSearchInput?.value);
+
+  const filtered = !query
+    ? sorted
+    : sorted.filter((action) => {
+        const haystack = `${action.id} ${action.label} ${action.description} ${action.group}`.toLowerCase();
+        return haystack.includes(query);
+      });
+
+  const visible = filtered;
+
+  actionsGrid.innerHTML = '';
+  if (visible.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'actions-empty';
+    empty.textContent = 'No commands match your search.';
+    actionsGrid.appendChild(empty);
+  } else {
+    visible.forEach((action) => renderActionCard(actionsGrid, action));
+  }
+
+  setActionsMeta(filtered.length, visible.length, query);
+  setActiveAction(activeActionId);
+}
+
+function stopRunWatchdog() {
+  if (runWatchdogId) {
+    window.clearInterval(runWatchdogId);
+    runWatchdogId = null;
+  }
+  runWatchdogBusy = false;
+}
+
+function startRunWatchdog() {
+  stopRunWatchdog();
+  runWatchdogId = window.setInterval(async () => {
+    if (!running || runWatchdogBusy) {
+      return;
+    }
+
+    runWatchdogBusy = true;
+    try {
+      const context = await window.clawDesktop.getContext();
+      if (!running) {
+        return;
+      }
+
+      if (!context?.running) {
+        appendLog('Sync: backend reports action complete. Controls re-enabled.', 'warn');
+        setRunningState(false);
+        setActiveAction(null);
+        setActionStatus('Done. Choose another action.', 'idle');
+        showToast('Action finished. Controls unlocked.', 'info');
+        stopRunWatchdog();
+        return;
+      }
+
+      if (context.activeAction && context.activeAction !== activeActionId) {
+        setActiveAction(context.activeAction);
+      }
+    } catch (_) {
+      // ignore intermittent IPC sync errors
+    } finally {
+      runWatchdogBusy = false;
+    }
+  }, RUN_SYNC_INTERVAL_MS);
+}
+
+function appendLog(line, level = 'info') {
+  const stickToBottom = logsOutput
+    ? logsOutput.scrollHeight - (logsOutput.scrollTop + logsOutput.clientHeight) < 20
+    : true;
+
+  const ts = new Date().toLocaleTimeString();
+  const prefix =
+    level === 'stderr' || level === 'error'
+      ? 'ERR'
+      : level === 'success'
+        ? 'OK '
+        : level === 'warn'
+          ? 'WRN'
+          : 'LOG';
+  const lines = String(line || '')
+    .split(/\r?\n/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  if (lines.length === 0) {
+    return;
+  }
+
+  lines.forEach((entry) => {
+    logLines.push(`[${ts}] ${prefix} ${entry}`);
+    const shortLine = entry.length > 120 ? `${entry.slice(0, 117)}...` : entry;
+    setActionStatus(shortLine, running ? 'running' : 'idle');
+    syncPathHintsFromLog(entry);
+  });
+
+  if (logLines.length > MAX_LOG_LINES) {
+    logLines = logLines.slice(-MAX_LOG_LINES);
+  }
+
+  logsOutput.textContent = logLines.join('\n');
+  if (stickToBottom && logsOutput && typeof logsOutput.scrollTo === 'function') {
+    logsOutput.scrollTo({ top: logsOutput.scrollHeight, behavior: 'smooth' });
+  } else if (stickToBottom && logsOutput) {
+    logsOutput.scrollTop = logsOutput.scrollHeight;
+  }
+}
+
+function normalizePathText(value) {
+  if (!value) {
+    return '';
+  }
+  return String(value).trim().replace(/^['"]+|['"]+$/g, '');
+}
+
+function updatePathHint(element, value, emptyLabel) {
+  if (!element) {
+    return;
+  }
+
+  const normalized = normalizePathText(value);
+  if (!normalized) {
+    element.textContent = emptyLabel;
+    element.title = '';
+    element.classList.add('empty');
+    return;
+  }
+
+  element.textContent = normalized;
+  element.title = normalized;
+  element.classList.remove('empty');
+}
+
+function setBackupPathHint(value) {
+  updatePathHint(backupPathHint, value, 'No backup yet.');
+}
+
+function setRestorePathHint(value) {
+  updatePathHint(restorePathHint, value, 'No restore yet.');
+}
+
+function setGatewayStatus(status) {
+  if (!gatewayStatusBadge || !gatewayStatusDetail) {
+    return;
+  }
+
+  gatewayStatusBadge.classList.remove('running', 'stopped', 'unknown');
+
+  if (!status || typeof status.running !== 'boolean') {
+    gatewayStatusBadge.classList.add('unknown');
+    gatewayStatusBadge.textContent = 'Unknown';
+    gatewayStatusDetail.textContent = 'Gateway status unavailable.';
+    return;
+  }
+
+  if (status.running) {
+    gatewayStatusBadge.classList.add('running');
+    gatewayStatusBadge.textContent = 'Running';
+    const latency = Number.isFinite(status.latencyMs) ? `${status.latencyMs} ms` : 'latency n/a';
+    const code = status.statusCode ? `HTTP ${status.statusCode}` : 'healthy';
+    gatewayStatusDetail.textContent = `${code} • ${latency}`;
+    return;
+  }
+
+  gatewayStatusBadge.classList.add('stopped');
+  gatewayStatusBadge.textContent = 'Offline';
+  gatewayStatusDetail.textContent = status.error || 'Gateway is not reachable.';
+}
+
+async function refreshGatewayStatus(force = false) {
+  if ((!force && gatewayPollBusy) || !window.clawDesktop?.getGatewayStatus) {
+    return null;
+  }
+
+  gatewayPollBusy = true;
+  try {
+    const status = await window.clawDesktop.getGatewayStatus();
+    setGatewayStatus(status);
+    return status;
+  } catch (error) {
+    const fallbackStatus = {
+      running: false,
+      error: error.message || 'Gateway status check failed.',
+    };
+    setGatewayStatus(fallbackStatus);
+    return fallbackStatus;
+  } finally {
+    gatewayPollBusy = false;
+  }
+}
+
+function startGatewayStatusPolling() {
+  if (gatewayPollId) {
+    window.clearInterval(gatewayPollId);
+  }
+  gatewayPollId = window.setInterval(() => {
+    refreshGatewayStatus();
+  }, GATEWAY_STATUS_POLL_MS);
+}
+
+function syncPathHintsFromLog(line) {
+  const backupMatch =
+    line.match(/Backup created successfully at:\s*(.+)$/i) ||
+    line.match(/Backup saved to:?\s*(.+)$/i) ||
+    line.match(/Backup archive:\s*(.+)$/i) ||
+    line.match(/Created\s+(.+openclaw.*backup.*\.(?:zip|tar\.gz(?:\.enc)?))$/i);
+  if (backupMatch) {
+    setBackupPathHint(backupMatch[1]);
+  }
+
+  const restoreMatch = line.match(/Restore source:\s*(.+)$/i) || line.match(/Extracting:\s*(.+)$/i);
+  if (restoreMatch) {
+    setRestorePathHint(restoreMatch[1]);
+  }
+}
+
+function setRunningState(isRunning) {
+  running = isRunning;
+  if (runState) {
+    runState.textContent = isRunning ? 'Running' : 'Idle';
+    runState.classList.toggle('running', isRunning);
+    runState.classList.toggle('idle', !isRunning);
+  }
+
+  const buttons = document.querySelectorAll('button.action-card');
+  buttons.forEach((button) => {
+    button.disabled = false;
+  });
+
+  if (isRunning && activeActionId) {
+    const activeButton = document.querySelector(`button.action-card[data-action-id="${activeActionId}"]`);
+    if (activeButton) {
+      activeButton.disabled = true;
+    }
+  }
+
+  if (gatewayRefreshBtn) {
+    gatewayRefreshBtn.disabled = isRunning;
+  }
+  stopBtn.disabled = !isRunning;
+}
+
+function showToast(message, mode = 'info') {
+  if (!toast) {
+    return;
+  }
+
+  toast.hidden = false;
+  toast.textContent = message;
+  toast.classList.remove('info', 'warn', 'error', 'show');
+  toast.classList.add(mode);
+
+  window.requestAnimationFrame(() => {
+    toast.classList.add('show');
+  });
+
+  if (toastTimer) {
+    clearTimeout(toastTimer);
+  }
+
+  toastTimer = window.setTimeout(() => {
+    toast.classList.remove('show');
+    window.setTimeout(() => {
+      toast.hidden = true;
+    }, 180);
+  }, 2300);
+}
+
+function setActionStatus(text, mode = 'idle') {
+  if (!actionStatus) {
+    return;
+  }
+  actionStatus.textContent = text;
+  actionStatus.classList.remove('idle', 'running', 'error');
+  actionStatus.classList.add(mode);
+}
+
+function getActionLabel(actionId) {
+  return actionById.get(actionId)?.label || actionId || 'Action';
+}
+
+function setActiveAction(actionId) {
+  activeActionId = actionId || null;
+  const buttons = document.querySelectorAll('button.action-card');
+  buttons.forEach((button) => {
+    const runningOnThisCard = Boolean(actionId) && button.dataset.actionId === actionId;
+    button.classList.toggle('is-running', runningOnThisCard);
+    button.setAttribute('aria-busy', runningOnThisCard ? 'true' : 'false');
+  });
+}
+
+function showModal(targetModal) {
+  if (!modalBackdrop) {
+    return;
+  }
+
+  modalBackdrop.hidden = false;
+  if (passwordModal) {
+    passwordModal.hidden = targetModal !== passwordModal;
+  }
+  if (confirmModal) {
+    confirmModal.hidden = targetModal !== confirmModal;
+  }
+  if (backupChoiceModal) {
+    backupChoiceModal.hidden = targetModal !== backupChoiceModal;
+  }
+}
+
+function hideModals() {
+  if (passwordModal)     passwordModal.hidden = true;
+  if (confirmModal)      confirmModal.hidden = true;
+  if (backupChoiceModal) backupChoiceModal.hidden = true;
+  if (modalBackdrop)     modalBackdrop.hidden = true;
+}
+
+function requestActionPassword(label) {
+  if (!modalBackdrop || !passwordModal || !passwordModalInput) {
+    const value = window.prompt(`Password required for ${label}.`, '');
+    const normalized = String(value || '').trim();
+    return Promise.resolve(normalized || null);
+  }
+
+  return new Promise((resolve) => {
+    if (passwordModalTitle) {
+      passwordModalTitle.textContent = 'Password Required';
+    }
+    if (passwordModalText) {
+      passwordModalText.textContent = `${label} requires your password.`;
+    }
+    if (passwordModalError) {
+      passwordModalError.textContent = '';
+    }
+    const savedPassword = loadSavedPassword();
+    passwordModalInput.value = savedPassword;
+    if (passwordRememberToggle) {
+      passwordRememberToggle.checked = Boolean(savedPassword);
+    }
+
+    showModal(passwordModal);
+    window.requestAnimationFrame(() => {
+      passwordModalInput.focus();
+    });
+
+    const finish = (value) => {
+      cleanup();
+      hideModals();
+      resolve(value);
+    };
+
+    const onConfirm = () => {
+      const value = passwordModalInput.value.trim();
+      if (!value) {
+        if (passwordModalError) {
+          passwordModalError.textContent = 'Password is required.';
+        }
+        passwordModalInput.focus();
+        return;
+      }
+
+      if (passwordRememberToggle && passwordRememberToggle.checked) {
+        savePassword(value);
+      } else {
+        clearSavedPassword();
+      }
+
+      finish(value);
+    };
+
+    const onCancel = () => {
+      finish(null);
+    };
+
+    const onKeyDown = (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        onConfirm();
+        return;
+      }
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onCancel();
+      }
+    };
+
+    const onBackdropClick = (event) => {
+      if (event.target === modalBackdrop) {
+        onCancel();
+      }
+    };
+
+    const cleanup = () => {
+      if (passwordModalConfirmBtn) {
+        passwordModalConfirmBtn.removeEventListener('click', onConfirm);
+      }
+      if (passwordModalCancelBtn) {
+        passwordModalCancelBtn.removeEventListener('click', onCancel);
+      }
+      passwordModal.removeEventListener('keydown', onKeyDown);
+      modalBackdrop.removeEventListener('click', onBackdropClick);
+    };
+
+    if (passwordModalConfirmBtn) {
+      passwordModalConfirmBtn.addEventListener('click', onConfirm);
+    }
+    if (passwordModalCancelBtn) {
+      passwordModalCancelBtn.addEventListener('click', onCancel);
+    }
+    passwordModal.addEventListener('keydown', onKeyDown);
+    modalBackdrop.addEventListener('click', onBackdropClick);
+  });
+}
+
+// Like requestActionPassword but password is optional — returns '' if user leaves it blank
+function requestOptionalPassword(title, description) {
+  if (!modalBackdrop || !passwordModal || !passwordModalInput) {
+    const value = window.prompt(`${description}\n(Leave blank if no password)`, '');
+    return Promise.resolve(value === null ? null : String(value || ''));
+  }
+
+  return new Promise((resolve) => {
+    if (passwordModalTitle) passwordModalTitle.textContent = title;
+    if (passwordModalText)  passwordModalText.textContent  = description;
+    if (passwordModalError) passwordModalError.textContent = '';
+    passwordModalInput.value       = '';
+    passwordModalInput.placeholder = 'Enter password (leave blank if none)';
+    if (passwordRememberToggle) passwordRememberToggle.checked = false;
+
+    showModal(passwordModal);
+    window.requestAnimationFrame(() => passwordModalInput.focus());
+
+    const finish = (value) => { cleanup(); hideModals(); resolve(value); };
+
+    const onConfirm     = () => finish(passwordModalInput.value.trim());
+    const onCancel      = () => finish(null);
+    const onKeyDown     = (e) => { if (e.key === 'Enter') onConfirm(); else if (e.key === 'Escape') onCancel(); };
+    const onBackdropClick = (e) => { if (e.target === modalBackdrop) onCancel(); };
+
+    const cleanup = () => {
+      passwordModalConfirmBtn?.removeEventListener('click', onConfirm);
+      passwordModalCancelBtn?.removeEventListener('click', onCancel);
+      passwordModal.removeEventListener('keydown', onKeyDown);
+      modalBackdrop.removeEventListener('click', onBackdropClick);
+      passwordModalInput.placeholder = 'Enter password';
+    };
+
+    passwordModalConfirmBtn?.addEventListener('click', onConfirm);
+    passwordModalCancelBtn?.addEventListener('click', onCancel);
+    passwordModal.addEventListener('keydown', onKeyDown);
+    modalBackdrop.addEventListener('click', onBackdropClick);
+  });
+}
+
+function showBackupChoiceModal() {
+  return new Promise((resolve) => {
+    if (!modalBackdrop || !backupChoiceModal) {
+      const choice = window.confirm('Do you have a backup to restore?\nOK = Restore  |  Cancel = Fresh setup');
+      return resolve(choice ? 'restore' : 'fresh');
+    }
+
+    // Remove any stale listeners before re-opening
+    const onRestore = () => { cleanup(); resolve('restore'); };
+    const onFresh   = () => { cleanup(); resolve('fresh'); };
+
+    const cleanup = () => {
+      choiceRestoreBtn?.removeEventListener('click', onRestore);
+      choiceFreshBtn?.removeEventListener('click', onFresh);
+      hideModals();
+    };
+
+    choiceRestoreBtn?.addEventListener('click', onRestore);
+    choiceFreshBtn?.addEventListener('click', onFresh);
+    showModal(backupChoiceModal);
+  });
+}
+
+function requestDangerConfirmation(label) {
+  if (!modalBackdrop || !confirmModal) {
+    return Promise.resolve(window.confirm(`Are you sure you want to ${label}?`));
+  }
+
+  return new Promise((resolve) => {
+    if (confirmModalText) {
+      confirmModalText.textContent = `Are you sure you want to ${label}?`;
+    }
+
+    showModal(confirmModal);
+    window.requestAnimationFrame(() => {
+      confirmModalConfirmBtn?.focus();
+    });
+
+    const finish = (value) => {
+      cleanup();
+      hideModals();
+      resolve(value);
+    };
+
+    const onConfirm = () => finish(true);
+
+    const onCancel = () => {
+      finish(false);
+    };
+
+    const onKeyDown = (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        onConfirm();
+        return;
+      }
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onCancel();
+      }
+    };
+
+    const onBackdropClick = (event) => {
+      if (event.target === modalBackdrop) {
+        onCancel();
+      }
+    };
+
+    const cleanup = () => {
+      if (confirmModalConfirmBtn) {
+        confirmModalConfirmBtn.removeEventListener('click', onConfirm);
+      }
+      if (confirmModalCancelBtn) {
+        confirmModalCancelBtn.removeEventListener('click', onCancel);
+      }
+      confirmModal.removeEventListener('keydown', onKeyDown);
+      modalBackdrop.removeEventListener('click', onBackdropClick);
+    };
+
+    if (confirmModalConfirmBtn) {
+      confirmModalConfirmBtn.addEventListener('click', onConfirm);
+    }
+    if (confirmModalCancelBtn) {
+      confirmModalCancelBtn.addEventListener('click', onCancel);
+    }
+    confirmModal.addEventListener('keydown', onKeyDown);
+    modalBackdrop.addEventListener('click', onBackdropClick);
+  });
+}
+
+async function runAction(action) {
+  if (running) {
+    const activeLabel = getActionLabel(activeActionId);
+    showToast(`${activeLabel} is already running. Wait or tap Stop.`, 'warn');
+    setActionStatus(`Running: ${activeLabel}...`, 'running');
+    return;
+  }
+
+  let selectedArchivePath = '';
+  if (action.requiresArchive) {
+    const pickedArchive = await window.clawDesktop.pickArchive();
+    if (!pickedArchive) {
+      appendLog(`Cancelled: ${action.label}`, 'warn');
+      showToast(`Cancelled: ${action.label}`, 'warn');
+      return;
+    }
+    selectedArchivePath = pickedArchive;
+    setRestorePathHint(pickedArchive);
+    appendLog(`Selected archive: ${pickedArchive}`);
+  }
+
+  let actionPassword = '';
+  if (action.requiresPassword) {
+    const value = await requestActionPassword(action.label);
+    if (!value) {
+      appendLog(`Cancelled: ${action.label}`, 'warn');
+      showToast(`Cancelled: ${action.label}`, 'warn');
+      return;
+    }
+    actionPassword = value;
+  } else if (action.requiresArchive && selectedArchivePath) {
+    // After archive is picked, check if it's encrypted
+    try {
+      const { encrypted } = await window.clawDesktop.checkArchiveEncrypted(selectedArchivePath);
+      if (encrypted) {
+        const value = await requestActionPassword('Restore From Archive (encrypted backup)');
+        if (!value) {
+          appendLog('Cancelled: password required for encrypted backup.', 'warn');
+          showToast('Cancelled: password required.', 'warn');
+          return;
+        }
+        actionPassword = value;
+      }
+      // If not encrypted: skip password prompt entirely
+    } catch (_) {
+      // If check fails, fall back to optional prompt
+      const value = await requestOptionalPassword(
+        'Password (Optional)',
+        'If this backup is encrypted, enter the password. Leave blank if it has none.',
+      );
+      if (value === null) {
+        appendLog(`Cancelled: ${action.label}`, 'warn');
+        showToast(`Cancelled: ${action.label}`, 'warn');
+        return;
+      }
+      actionPassword = value;
+    }
+  } else if (action.optionalPassword && !action.requiresArchive) {
+    const value = await requestOptionalPassword(
+      'Password (Optional)',
+      `If this backup is encrypted, enter the password. Leave blank if it has none.`,
+    );
+    if (value === null) {
+      appendLog(`Cancelled: ${action.label}`, 'warn');
+      showToast(`Cancelled: ${action.label}`, 'warn');
+      return;
+    }
+    actionPassword = value;
+  }
+
+  if (action.destructive) {
+    const confirmed = await requestDangerConfirmation(action.label);
+    if (!confirmed) {
+      appendLog(`Cancelled: ${action.label}`, 'warn');
+      showToast(`Cancelled: ${action.label}`, 'warn');
+      return;
+    }
+  }
+
+  try {
+    touchActionLru(action.id);
+
+    if (action.id === 'restore-latest') {
+      setRestorePathHint('Latest backup from ReClaw backups folder');
+    }
+
+    setActiveAction(action.id);
+    renderVisibleActions();
+    setActionStatus(`Running: ${action.label}...`, 'running');
+    setRunningState(true);
+    startRunWatchdog();
+    await window.clawDesktop.runAction({
+      actionId: action.id,
+      password: actionPassword,
+      archivePath: selectedArchivePath,
+    });
+  } catch (error) {
+    setActionStatus(`Failed: ${action.label}`, 'error');
+    showToast(`Failed: ${action.label}`, 'error');
+    appendLog(error.message || String(error), 'error');
+  } finally {
+    stopRunWatchdog();
+    setRunningState(false);
+    setActiveAction(null);
+  }
+}
+
+function renderActionCard(container, action) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.dataset.actionId = action.id;
+  button.className = `action-card${action.destructive ? ' destructive' : ''}`;
+  button.innerHTML = `
+    <span class="card-top">
+      <span class="emoji">${action.emoji || '🧩'}</span>
+    </span>
+    <span class="title">${action.label}</span>
+    <span class="desc">${action.description}</span>
+  `;
+  button.addEventListener('click', () => runAction(action));
+  container.appendChild(button);
+}
+
+function renderActions(actions) {
+  actionById.clear();
+  allActions = Array.isArray(actions) ? [...actions] : [];
+  allActions.forEach((action) => actionById.set(action.id, action));
+  renderVisibleActions();
+}
+
+// ─── OpenClaw setup wizard ────────────────────────────────────────────────────
+
+const openclawSetupWizard = document.getElementById('openclawSetupWizard');
+const wizardInstallBtn    = document.getElementById('wizardInstallBtn');
+const wizardRestoreBtn    = document.getElementById('wizardRestoreBtn');
+const wizardSkipBtn       = document.getElementById('wizardSkipBtn');
+const wizardLogs          = document.getElementById('wizardLogs');
+const backupChoiceModal   = document.getElementById('backupChoiceModal');
+const choiceRestoreBtn    = document.getElementById('choiceRestoreBtn');
+const choiceFreshBtn      = document.getElementById('choiceFreshBtn');
+let lastErrorToastAt = 0;
+let lastErrorToastText = '';
+let configErrorAlerted = false;
+
+function maybeAlertConfigError(text) {
+  if (configErrorAlerted) return false;
+  if (!text) return false;
+  const normalized = text.toLowerCase();
+  if (
+    normalized.includes('invalid config') ||
+    normalized.includes('plugins.load.paths') ||
+    normalized.includes('plugin path not found')
+  ) {
+    configErrorAlerted = true;
+    const message =
+      'OpenClaw config has missing plugin paths. Run "OC Fix Missing Plugins" or edit ~/.openclaw/openclaw.json.';
+    alertUser(message, 'error');
+    setActionStatus('OpenClaw config invalid (missing plugin path).', 'error');
+    return true;
+  }
+  return false;
+}
+
+function wizardLog(text) {
+  if (!wizardLogs) return;
+  wizardLogs.textContent += text + '\n';
+  wizardLogs.scrollTop = wizardLogs.scrollHeight;
+}
+
+function isNoisyInstallerLog(text) {
+  const line = String(text || '').trim().toLowerCase();
+  if (!line) return false;
+
+  return (
+    line.startsWith('npm http fetch') ||
+    line.startsWith('npm timing') ||
+    line.startsWith('npm sill') ||
+    line.startsWith('npm verb') ||
+    line.startsWith('npm notice') ||
+    line.startsWith('npm warn')
+  );
+}
+
+function alertUser(message, mode = 'error') {
+  showToast(message, mode);
+}
+
+function setWizardStep(stepNum, state, statusText) {
+  const el = document.getElementById(`wizardStep${stepNum}`);
+  if (!el) return;
+  el.classList.remove('active', 'done', 'error');
+  if (state) el.classList.add(state);
+  const statusEl = el.querySelector('.wizard-step-status');
+  if (statusEl && statusText !== undefined) statusEl.textContent = statusText;
+}
+
+function showSetupWizard() {
+  if (openclawSetupWizard) openclawSetupWizard.removeAttribute('hidden');
+  document.querySelector('.app-shell')?.classList.add('wizard-active');
+}
+
+function hideSetupWizard() {
+  if (openclawSetupWizard) openclawSetupWizard.setAttribute('hidden', '');
+  document.querySelector('.app-shell')?.classList.remove('wizard-active');
+}
+
+function primeWizardForExistingOpenClawBinary() {
+  setWizardStep(1, 'done', 'Already installed');
+  setWizardStep(2, 'active', 'Choose…');
+  setWizardStep(3, null, '');
+  wizardLog('Step 1: openclaw already installed — skipping npm install.');
+
+  const step2Label = document.getElementById('wizardStep2Label');
+  if (step2Label) step2Label.textContent = 'Choose backup or fresh setup';
+
+  const noteEl = document.querySelector('.wizard-note');
+  if (noteEl) noteEl.hidden = true;
+
+  if (wizardInstallBtn) {
+    wizardInstallBtn.hidden = true;
+    wizardInstallBtn.disabled = false;
+    wizardInstallBtn.onclick = runSetupWizard;
+  }
+  if (wizardRestoreBtn) {
+    wizardRestoreBtn.hidden = false;
+    wizardRestoreBtn.disabled = false;
+    wizardRestoreBtn.textContent = 'Choose backup or fresh';
+    wizardRestoreBtn.onclick = runChoiceStep;
+  }
+  if (wizardSkipBtn) wizardSkipBtn.disabled = false;
+  _wizardRunning = false;
+}
+
+async function runVerifyStep() {
+  if (wizardInstallBtn) wizardInstallBtn.disabled = true;
+  if (wizardRestoreBtn) wizardRestoreBtn.hidden = true;
+  if (wizardSkipBtn) wizardSkipBtn.disabled = true;
+
+  setWizardStep(3, 'active', 'Checking…');
+  wizardLog('\nStep 3: Verifying OpenClaw config …');
+  const check = await window.clawDesktop.checkOpenClaw();
+  if (check.installed) {
+    setWizardStep(3, 'done', 'Ready');
+    wizardLog('OpenClaw config found. Ready to go!');
+    showToast('OpenClaw installed! Loading ReClaw…', 'info');
+    await new Promise((resolve) => window.setTimeout(resolve, 1200));
+    hideSetupWizard();
+    await initializeMainApp();
+  } else {
+    setWizardStep(3, 'error', 'Config missing');
+    wizardLog(
+      '\nOpenClaw config not found yet.\n' +
+      'Make sure you completed all steps in the terminal (including browser sign-in).\n' +
+      'Then click "Check Again", or click "Already installed — Skip" to continue manually.',
+    );
+    if (check.error) wizardLog(`Detail: ${check.error}`);
+    alertUser('OpenClaw config not found yet. Complete setup and click Check Again.', 'warn');
+    if (wizardInstallBtn) {
+      wizardInstallBtn.textContent = 'Check Again';
+      wizardInstallBtn.disabled = false;
+      wizardInstallBtn.hidden = false;
+      _wizardRunning = false;
+      wizardInstallBtn.onclick = () => runVerifyStep();
+    }
+    if (wizardSkipBtn) wizardSkipBtn.disabled = false;
+  }
+}
+
+async function runRestoreStep() {
+  if (wizardInstallBtn) wizardInstallBtn.disabled = true;
+  if (wizardRestoreBtn) wizardRestoreBtn.disabled = true;
+  if (wizardSkipBtn) wizardSkipBtn.disabled = true;
+
+  const reenableChoice = () => {
+    if (wizardInstallBtn) wizardInstallBtn.disabled = false;
+    if (wizardRestoreBtn) wizardRestoreBtn.disabled = false;
+    if (wizardSkipBtn) wizardSkipBtn.disabled = false;
+  };
+
+  // Pick archive file
+  const archivePath = await window.clawDesktop.pickArchive();
+  if (!archivePath) { reenableChoice(); return; }
+
+  wizardLog(`\nSelected archive: ${archivePath}`);
+
+  // Ask for optional password (blank = no encryption)
+  const password = await requestOptionalPassword(
+    'Backup password',
+    'Enter the password for this backup, or leave blank if it has no password.',
+  );
+  if (password === null) { reenableChoice(); return; } // user cancelled
+
+  setWizardStep(2, 'active', 'Restoring…');
+  wizardLog('\nRestoring backup…');
+
+  const unsubLog = window.clawDesktop.onLog((data) => { wizardLog(data.text || ''); });
+  let restoreResult;
+  try {
+    restoreResult = await window.clawDesktop.wizardRestore(archivePath, password);
+  } finally {
+    unsubLog();
+  }
+
+  if (!restoreResult.ok) {
+    setWizardStep(2, 'error', 'Failed');
+    wizardLog(`\nRestore failed: ${restoreResult.error || 'unknown error'}`);
+    wizardLog('You can try again or click "No backup — Set up fresh".');
+    alertUser(`Restore failed: ${restoreResult.error || 'unknown error'}`);
+    if (wizardInstallBtn) wizardInstallBtn.disabled = false;
+    if (wizardRestoreBtn) wizardRestoreBtn.disabled = false;
+    if (wizardSkipBtn) wizardSkipBtn.disabled = false;
+    return;
+  }
+
+  setWizardStep(2, 'done', 'Restored');
+  await runVerifyStep();
+}
+
+async function runChoiceStep() {
+  if (_wizardRunning) return;
+  _wizardRunning = true;
+  if (wizardInstallBtn) wizardInstallBtn.disabled = true;
+  if (wizardRestoreBtn) wizardRestoreBtn.disabled = true;
+  if (wizardSkipBtn) wizardSkipBtn.disabled = true;
+
+  try {
+    const backupChoice = await showBackupChoiceModal();
+    if (backupChoice === 'restore') {
+      await runRestoreStep();
+    } else {
+      await runOnboardStep();
+    }
+  } finally {
+    _wizardRunning = false;
+  }
+}
+
+async function runOnboardStep() {
+  if (wizardInstallBtn) wizardInstallBtn.disabled = true;
+  if (wizardRestoreBtn) wizardRestoreBtn.hidden = true;
+  if (wizardSkipBtn) wizardSkipBtn.disabled = true;
+
+  // Step 2: Onboard — opens an interactive terminal for the user
+  setWizardStep(2, 'active', 'Opening terminal…');
+  const step2Label = document.getElementById('wizardStep2Label');
+  if (step2Label) step2Label.textContent = 'Run openclaw onboard';
+  wizardLog('\nStep 2: openclaw onboard --install-daemon');
+
+  const onboardResult = await window.clawDesktop.onboardOpenClaw();
+
+  if (onboardResult.ok) {
+    setWizardStep(2, 'done', 'Done');
+    await runVerifyStep();
+  } else if (onboardResult.needsManual) {
+    setWizardStep(2, 'active', 'Complete in terminal →');
+    wizardLog(
+      '\nA terminal window has been opened with `openclaw onboard`.\n' +
+      'Complete the setup there (choose an AI provider, finish browser sign-in, etc.).\n' +
+      'When you are done, click "Check Again" below.',
+    );
+    if (wizardInstallBtn) {
+      wizardInstallBtn.textContent = 'Check Again';
+      wizardInstallBtn.disabled = false;
+      wizardInstallBtn.hidden = false;
+      _wizardRunning = false;
+      wizardInstallBtn.onclick = () => runVerifyStep();
+    }
+    if (wizardSkipBtn) wizardSkipBtn.disabled = false;
+  } else {
+    setWizardStep(2, 'error', 'Failed');
+    wizardLog(`\nOnboarding failed: ${onboardResult.error || 'unknown error'}`);
+    alertUser(`Onboarding failed: ${onboardResult.error || 'unknown error'}`);
+    if (wizardInstallBtn) {
+      wizardInstallBtn.textContent = 'Retry';
+      wizardInstallBtn.disabled = false;
+      wizardInstallBtn.onclick = () => runOnboardStep();
+    }
+    if (wizardSkipBtn) wizardSkipBtn.disabled = false;
+  }
+}
+
+async function runSetupWizard() {
+  if (_wizardRunning) return;
+  _wizardRunning = true;
+  if (wizardInstallBtn) wizardInstallBtn.disabled = true;
+  if (wizardSkipBtn) wizardSkipBtn.disabled = true;
+
+  const resetButtons = () => {
+    _wizardRunning = false;
+    if (wizardInstallBtn) {
+      wizardInstallBtn.disabled = false;
+      wizardInstallBtn.textContent = 'Retry Install';
+      wizardInstallBtn.hidden = false;
+      wizardInstallBtn.onclick = runSetupWizard;
+    }
+    if (wizardRestoreBtn) wizardRestoreBtn.hidden = true;
+    if (wizardSkipBtn) wizardSkipBtn.disabled = false;
+  };
+
+  try {
+    // Step 1: Install (skip if binary already present)
+    setWizardStep(1, 'active', 'Checking…');
+    const preCheck = await window.clawDesktop.checkOpenClaw();
+
+    if (preCheck.binaryInstalled) {
+      setWizardStep(1, 'done', 'Already installed');
+      wizardLog('Step 1: openclaw already installed — skipping npm install.');
+      const noteEl = document.querySelector('.wizard-note');
+      if (noteEl) noteEl.hidden = true;
+    } else {
+      setWizardStep(1, 'active', 'Installing…');
+      wizardLog('Step 1: npm install -g openclaw@latest');
+
+      const unsubLog = window.clawDesktop.onLog((data) => { wizardLog(data.text || ''); });
+      let installResult;
+      try {
+        installResult = await window.clawDesktop.installOpenClaw();
+      } finally {
+        unsubLog();
+      }
+
+      if (!installResult.ok) {
+        setWizardStep(1, 'error', 'Failed');
+        wizardLog(`\nInstall failed: ${installResult.error}`);
+        alertUser(`Install failed: ${installResult.error}`);
+        resetButtons();
+        return;
+      }
+      setWizardStep(1, 'done', 'Done');
+    }
+
+    // Step 2: Ask if user has a backup — show a choice button that opens the modal
+    setWizardStep(2, 'active', 'Choose…');
+    const step2Label = document.getElementById('wizardStep2Label');
+    if (step2Label) step2Label.textContent = 'Choose backup or fresh setup';
+    if (wizardInstallBtn) wizardInstallBtn.hidden = true;
+    if (wizardRestoreBtn) {
+      wizardRestoreBtn.hidden = false;
+      wizardRestoreBtn.disabled = false;
+      wizardRestoreBtn.textContent = 'Choose backup or fresh';
+      wizardRestoreBtn.onclick = runChoiceStep;
+    }
+    if (wizardSkipBtn) wizardSkipBtn.disabled = false;
+    _wizardRunning = false;
+    return;
+  } catch (err) {
+    // Unexpected IPC or JS error — surface it clearly rather than hanging
+    wizardLog(`\nUnexpected error: ${err && err.message ? err.message : String(err)}`);
+    alertUser('Setup failed unexpectedly. Check the log below.');
+    resetButtons();
+  }
+}
+
+let _wizardRunning = false;
+
+if (wizardInstallBtn) {
+  wizardInstallBtn.onclick = runSetupWizard;
+}
+
+if (wizardSkipBtn) {
+  wizardSkipBtn.addEventListener('click', async () => {
+    hideSetupWizard();
+    await initializeMainApp();
+  });
+}
+
+// ─── Main app initialize (runs after wizard or directly if openclaw is present) ─
+
+async function initializeMainApp() {
+  currentContext = await window.clawDesktop.getContext();
+  actionLru = loadActionLru();
+  if (actionSearchInput) {
+    actionSearchInput.value = '';
+  }
+  renderActions(currentContext.actions || []);
+  setRunningState(Boolean(currentContext.running));
+  if (currentContext.running) {
+    startRunWatchdog();
+  }
+  setBackupPathHint('');
+  setRestorePathHint('');
+  setGatewayStatus({ running: false, error: 'Checking OpenClaw gateway...' });
+  if (window.clawDesktop?.ensureGatewayOnline) {
+    appendLog('Ensuring OpenClaw gateway is online…', 'info');
+    try {
+      const ensureResult = await window.clawDesktop.ensureGatewayOnline({ installIfNeeded: true, timeoutMs: 45000 });
+      if (ensureResult?.ok) {
+        appendLog('Gateway is online.', 'success');
+      } else if (ensureResult?.error) {
+        appendLog(`Gateway auto-start did not complete: ${ensureResult.error}`, 'warn');
+      }
+    } catch (error) {
+      appendLog(`Gateway auto-start failed: ${error.message || 'unknown error'}`, 'warn');
+    }
+  }
+  await refreshGatewayStatus(true);
+  startGatewayStatusPolling();
+  setActionStatus('Ready. Tap an action to begin.', 'idle');
+  appendLog('Ready. Tap an action to begin.', 'success');
+}
+
+async function initialize() {
+  // Check if openclaw is installed before loading the main UI.
+  const check = await window.clawDesktop.checkOpenClaw();
+  if (!check.installed) {
+    showSetupWizard();
+    if (check.binaryInstalled) {
+      primeWizardForExistingOpenClawBinary();
+    }
+    return; // wizard will call initializeMainApp() when done
+  }
+  await initializeMainApp();
+}
+
+if (gatewayRefreshBtn) {
+  gatewayRefreshBtn.addEventListener('click', async () => {
+    await refreshGatewayStatus();
+  });
+}
+
+if (actionSearchInput) {
+  actionSearchInput.addEventListener('input', () => {
+    renderVisibleActions();
+  });
+}
+
+window.addEventListener('resize', () => {
+  renderVisibleActions();
+  // Ensure logs height respects dynamic maximum when viewport changes
+  try { setLogsHeight(getLogsHeight()); } catch (_) { /* noop during init */ }
+});
+
+clearLogsBtn.addEventListener('click', () => {
+  logLines = [];
+  logsOutput.textContent = '';
+});
+
+// ── Logs panel resize handle ──────────────────────────────────────────────────
+const logsResizeHandle = document.getElementById('logsResizeHandle');
+const LOGS_HEIGHT_MIN = 60;
+const LOGS_HEIGHT_DEFAULT = 220;
+
+function getLogsHeight() {
+  const val = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--logs-height'), 10);
+  return Number.isFinite(val) ? val : LOGS_HEIGHT_DEFAULT;
+}
+
+function setLogsHeight(px) {
+  const max = getLogsHeightMax();
+  const clamped = Math.min(max, Math.max(LOGS_HEIGHT_MIN, px));
+  document.documentElement.style.setProperty('--logs-height', `${clamped}px`);
+}
+
+function getLogsHeightMax() {
+  // Compute a dynamic maximum so the logs panel cannot be dragged
+  // to cover the search input. We reserve the area taken by the
+  // actions/search rows above the logs panel.
+  try {
+    const searchRow = document.querySelector('.actions-search-row');
+    if (searchRow) {
+      const rect = searchRow.getBoundingClientRect();
+      const reservedTop = rect.top + rect.height + 16; // small margin
+      const max = Math.max(LOGS_HEIGHT_MIN, Math.floor(window.innerHeight - reservedTop));
+      return max;
+    }
+  } catch (e) {
+    // ignore and fall back
+  }
+  return 520;
+}
+
+if (logsResizeHandle) {
+  logsResizeHandle.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    const startY = e.clientY;
+    const startHeight = getLogsHeight();
+    logsResizeHandle.classList.add('dragging');
+
+    const onMouseMove = (ev) => {
+      const delta = startY - ev.clientY; // drag up = positive = taller
+      setLogsHeight(startHeight + delta);
+    };
+
+    const onMouseUp = () => {
+      logsResizeHandle.classList.remove('dragging');
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    };
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  });
+}
+
+stopBtn.addEventListener('click', async () => {
+  const stopped = await window.clawDesktop.stopAction();
+  if (stopped) {
+    appendLog('Stop signal sent.', 'warn');
+  }
+});
+
+window.addEventListener('keydown', (event) => {
+  const isMac = navigator.platform.toLowerCase().includes('mac');
+  const hotkey = isMac ? event.metaKey && event.key === 'Enter' : event.ctrlKey && event.key === 'Enter';
+  if (hotkey && !running) {
+    const backupAction = (currentContext?.actions || []).find((item) => item.id === 'backup');
+    if (backupAction) {
+      runAction(backupAction);
+    }
+  }
+});
+
+window.clawDesktop.onLog((entry) => {
+  appendLog(entry.text || '', entry.level || 'info');
+  const level = (entry.level || '').toLowerCase();
+  if (level === 'error' || level === 'stderr') {
+    const text = (entry.text || '').trim();
+    if (maybeAlertConfigError(text)) {
+      return;
+    }
+    if (isNoisyInstallerLog(text)) {
+      return;
+    }
+    const now = Date.now();
+    if (text && (text !== lastErrorToastText || now - lastErrorToastAt > 5000)) {
+      lastErrorToastText = text;
+      lastErrorToastAt = now;
+      alertUser(text, level === 'stderr' ? 'warn' : 'error');
+    }
+  }
+});
+
+window.clawDesktop.onStatus(async (status) => {
+  setActiveAction(status.running ? status.actionId : null);
+  setRunningState(Boolean(status.running));
+
+  if (status.running) {
+    startRunWatchdog();
+    if (status.actionId === 'restore-archive' && status.archivePath) {
+      setRestorePathHint(status.archivePath);
+    }
+    setActionStatus(`Running: ${getActionLabel(status.actionId)}...`, 'running');
+    return;
+  }
+
+  stopRunWatchdog();
+
+  if (status.backupPath) {
+    setBackupPathHint(status.backupPath);
+  }
+
+  if (status.restoreSource) {
+    setRestorePathHint(status.restoreSource);
+  }
+
+  if (status.ok === false) {
+    setActionStatus(`Failed: ${getActionLabel(status.completedActionId)}`, 'error');
+    refreshGatewayStatus();
+    return;
+  }
+
+  const backupActionIds = new Set([
+    'backup',
+    'oc-backup-create',
+    'oc-backup-create-verify',
+    'oc-backup-create-only-config',
+    'oc-backup-create-no-workspace',
+  ]);
+
+  if (backupActionIds.has(status.completedActionId) && status.backupPath) {
+    setActionStatus(`Backup saved to: ${status.backupPath}`, 'idle');
+    showToast('Backup complete. Path updated.', 'info');
+    refreshGatewayStatus();
+    return;
+  }
+
+  if ((status.completedActionId === 'restore-latest' || status.completedActionId === 'restore-archive') && status.restoreSource) {
+    setActionStatus(`Restore source: ${status.restoreSource}`, 'idle');
+    showToast('Restore complete. Source updated.', 'info');
+    refreshGatewayStatus();
+    return;
+  }
+
+  if (status.completedActionId === 'oc-gateway-stop') {
+    const gatewayStatus = await refreshGatewayStatus(true);
+    if (gatewayStatus && gatewayStatus.running) {
+      appendLog(
+        'Gateway is still running locally. OC Gateway Stop can stop managed service, but not always ad-hoc local processes.',
+        'warn',
+      );
+      showToast('Gateway still running locally. Use OC Logs Follow or stop the local process.', 'warn');
+      setActionStatus('Gateway still running locally.', 'error');
+      return;
+    }
+
+    showToast('Gateway stop confirmed.', 'info');
+    setActionStatus('Gateway is offline.', 'idle');
+    return;
+  }
+
+  // Gateway start/restart/install: force-refresh immediately after completion so
+  // the badge reflects reality without waiting for the next 12-second poll cycle.
+  // A brief delay gives the service a moment to bind before the health check fires.
+  if (
+    status.completedActionId === 'oc-gateway-start' ||
+    status.completedActionId === 'oc-gateway-restart' ||
+    status.completedActionId === 'oc-gateway-install'
+  ) {
+    showToast('Action completed.', 'info');
+    setActionStatus('Done. Checking gateway status...', 'idle');
+    await new Promise((resolve) => window.setTimeout(resolve, 1500));
+    await refreshGatewayStatus(true);
+    setActionStatus('Done. Choose another action.', 'idle');
+    return;
+  }
+
+  showToast('Action completed.', 'info');
+  setActionStatus('Done. Choose another action.', 'idle');
+  refreshGatewayStatus(true);
+});
+
+initialize().catch((error) => {
+  appendLog(`Initialization failed: ${error.message || String(error)}`, 'error');
+});

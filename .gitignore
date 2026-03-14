@@ -1,0 +1,17 @@
+# Common ignores
+.DS_Store
+*.log
+*.env
+backups/
+*.zip
+
+# Node
+node_modules/
+package-lock.json
+yarn.lock
+
+# Desktop build artifacts
+desktop-ui/dist/
+
+# Ignore agent definitions directory (may contain sensitive data)
+.github/agents/

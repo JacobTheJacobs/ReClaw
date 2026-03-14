@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'none';" />
+    <title>ReClaw</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+
+      <!-- ── OpenClaw Setup Wizard (shown only when openclaw is not installed) ── -->
+      <section id="openclawSetupWizard" class="panel setup-wizard-panel" hidden>
+        <div class="setup-wizard-brand">
+          <img class="brand-logo" src="./reclaw-logo.svg" alt="ReClaw logo" />
+          <h1 class="setup-wizard-title">Install OpenClaw</h1>
+          <p class="setup-wizard-subtitle">OpenClaw was not found on this machine.<br>ReClaw will install it for you in one click.</p>
+        </div>
+
+        <div class="setup-wizard-steps">
+          <div class="wizard-step" id="wizardStep1">
+            <span class="wizard-step-num">1</span>
+            <span class="wizard-step-label">Install OpenClaw via npm</span>
+            <span class="wizard-step-status" id="wizardStep1Status"></span>
+          </div>
+          <div class="wizard-step" id="wizardStep2">
+            <span class="wizard-step-num">2</span>
+            <span class="wizard-step-label" id="wizardStep2Label">Configure OpenClaw</span>
+            <span class="wizard-step-status" id="wizardStep2Status"></span>
+          </div>
+          <div class="wizard-step" id="wizardStep3">
+            <span class="wizard-step-num">3</span>
+            <span class="wizard-step-label">Verify &amp; start gateway</span>
+            <span class="wizard-step-status" id="wizardStep3Status"></span>
+          </div>
+        </div>
+
+        <pre id="wizardLogs" class="wizard-logs"></pre>
+
+        <div class="wizard-actions">
+          <button id="wizardInstallBtn" class="wizard-btn-primary" type="button">Install OpenClaw</button>
+          <button id="wizardRestoreBtn" class="wizard-btn-primary" type="button" hidden>Choose backup or fresh</button>
+          <button id="wizardSkipBtn" class="ghost wizard-btn-skip" type="button">Already installed — Skip</button>
+        </div>
+        <p class="wizard-note">This runs: <code>npm install -g openclaw@latest</code></p>
+
+        <footer class="wizard-footer">
+          <span class="footer-links" aria-label="GitHub links">
+            <a class="footer-link" href="https://github.com/JacobTheJacobs/ReClaw" target="_blank" rel="noreferrer noopener">ReClaw Repo</a>
+            <a class="footer-link" href="https://github.com/JacobTheJacobs" target="_blank" rel="noreferrer noopener">JacobTheJacobs</a>
+          </span>
+        </footer>
+      </section>
+
+      <section class="panel setup-panel">
+        <div class="setup-top-row">
+          <div class="setup-brand">
+            <img class="brand-logo" src="./reclaw-logo.svg" alt="ReClaw logo" />
+            <h1 class="setup-title">ReClaw</h1>
+          </div>
+          <div class="gateway-inline">
+            <span class="gateway-status-label">Gateway</span>
+            <span id="gatewayStatusBadge" class="gateway-badge unknown">Checking</span>
+            <button id="gatewayRefreshBtn" class="ghost" type="button">Refresh</button>
+          </div>
+        </div>
+        <div id="gatewayStatusDetail" class="gateway-status-detail gateway-status-detail-inline">Checking OpenClaw gateway...</div>
+      </section>
+
+      <section class="panel actions-panel">
+        <div class="path-indicators">
+          <div class="path-card">
+            <span class="path-label">Backup Saved To</span>
+            <span id="backupPathHint" class="path-value empty">No backup yet.</span>
+          </div>
+          <div class="path-card">
+            <span class="path-label">Restore Source</span>
+            <span id="restorePathHint" class="path-value empty">No restore yet.</span>
+          </div>
+        </div>
+        <div class="actions-search-row">
+          <div class="search-input-wrap">
+            <svg class="search-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <circle cx="6.5" cy="6.5" r="4" stroke="currentColor" stroke-width="1.4"/>
+              <line x1="9.7" y1="9.7" x2="13" y2="13" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+            </svg>
+            <input id="actionSearchInput" type="text" placeholder="Search commands (doctor, gateway, backup...)" />
+          </div>
+        </div>
+        <div id="actionsMeta" class="actions-meta">Showing 0 actions.</div>
+        <div id="actionsGrid" class="actions-grid"></div>
+      </section>
+
+      <section class="panel logs-panel">
+        <div class="logs-resize-handle" id="logsResizeHandle"></div>
+        <div class="actions-title-row">
+          <h2>Live Logs</h2>
+          <div class="log-tools">
+            <button id="clearLogsBtn" class="ghost" type="button">Clear</button>
+            <button id="stopBtn" class="danger" type="button">Stop</button>
+          </div>
+        </div>
+        <pre id="logsOutput" class="logs-output"></pre>
+      </section>
+
+      <footer class="footer-note">
+        <span>Ctrl/Cmd + Enter = Save Backup</span>
+        <span class="footer-links" aria-label="GitHub links">
+          <a class="footer-link" href="https://github.com/JacobTheJacobs/ReClaw" target="_blank" rel="noreferrer noopener">ReClaw Repo</a>
+          <a class="footer-link" href="https://github.com/JacobTheJacobs" target="_blank" rel="noreferrer noopener">JacobTheJacobs</a>
+        </span>
+      </footer>
+
+      <div id="toast" class="toast" hidden aria-live="polite"></div>
+      <div id="modalBackdrop" class="modal-backdrop" hidden>
+        <div id="backupChoiceModal" class="modal-card backup-choice-modal" hidden role="dialog" aria-modal="true">
+          <h3>Do you have a backup?</h3>
+          <p>Choose how to set up OpenClaw on this machine.</p>
+          <div class="backup-choice-options">
+            <button id="choiceRestoreBtn" class="backup-choice-btn" type="button">
+              <span class="choice-icon">📦</span>
+              <div class="choice-text">
+                <span class="choice-title">Restore from backup</span>
+                <span class="choice-desc">Pick an archive and restore your settings, credentials &amp; sessions</span>
+              </div>
+            </button>
+            <button id="choiceFreshBtn" class="backup-choice-btn ghost" type="button">
+              <span class="choice-icon">✨</span>
+              <div class="choice-text">
+                <span class="choice-title">Fresh setup</span>
+                <span class="choice-desc">Run openclaw onboard in a terminal to configure from scratch</span>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <div id="passwordModal" class="modal-card" hidden role="dialog" aria-modal="true" aria-labelledby="passwordModalTitle">
+          <h3 id="passwordModalTitle">Password Required</h3>
+          <p id="passwordModalText">This action requires your password.</p>
+          <input id="passwordModalInput" type="password" placeholder="Enter password" />
+          <label class="modal-check" for="passwordRememberToggle">
+            <input id="passwordRememberToggle" type="checkbox" />
+            <span>Save password on this device</span>
+          </label>
+          <div id="passwordModalError" class="modal-error"></div>
+          <div class="modal-actions">
+            <button id="passwordModalCancelBtn" class="ghost" type="button">Cancel</button>
+            <button id="passwordModalConfirmBtn" class="ghost" type="button">Continue</button>
+          </div>
+        </div>
+
+        <div id="confirmModal" class="modal-card" hidden role="dialog" aria-modal="true" aria-labelledby="confirmModalTitle" aria-describedby="confirmModalText">
+          <h3 id="confirmModalTitle">Confirm Action</h3>
+          <p id="confirmModalText" class="modal-desc">Are you sure you want to continue?</p>
+          <div class="modal-actions">
+            <button id="confirmModalCancelBtn" class="ghost" type="button">No</button>
+            <button id="confirmModalConfirmBtn" class="danger" type="button">Yes</button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,31 @@
+#!/bin/bash
+# OpenClaw Backup Pro - Linux/Mac Installer
+
+set -e
+
+cat <<'EOF'
+██████╗ ███████╗ ██████╗██╗      █████╗ ██╗    ██╗
+██╔══██╗██╔════╝██╔════╝██║     ██╔══██╗██║    ██║
+██████╔╝█████╗  ██║     ██║     ███████║██║ █╗ ██║
+██╔══██╗██╔══╝  ██║     ██║     ██╔══██║██║███╗██║
+██║  ██║███████╗╚██████╗███████╗██║  ██║╚███╔███╔╝
+╚═╝  ╚═╝╚══════╝ ╚═════╝╚══════╝╚═╝  ╚═╝ ╚══╝╚══╝
+EOF
+echo "JacobTheJacobs/ReClaw"
+
+echo "📦 Installing OpenClaw Backup Pro..."
+
+# Check for Node.js
+if ! command -v node &> /dev/null; then
+    echo "❌ Error: Node.js is not installed. Please install it first."
+    exit 1
+fi
+
+# Install dependencies
+npm install
+
+# Link the CLI globally
+sudo npm link
+
+echo "✅ Installation complete!"
+echo "🚀 You can now use 'reclaw backup' or 'reclaw restore <file>'"

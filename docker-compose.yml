@@ -1,0 +1,14 @@
+services:
+  backup:
+    build: .
+    volumes:
+      - ~/.openclaw:/root/.openclaw
+      - ./backups:/backups
+    command: npm run backup
+
+  restore:
+    build: .
+    volumes:
+      - ~/.openclaw:/root/.openclaw
+      - ./backups:/backups
+    command: npm run restore

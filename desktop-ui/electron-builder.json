@@ -1,0 +1,78 @@
+{
+  "appId": "com.jacobthejacobs.reclaw",
+  "productName": "ReClaw",
+  "asar": true,
+  "asarUnpack": [
+    "bin/**/*",
+    "lib/**/*",
+    "config/**/*",
+    "scripts/**/*",
+    "node_modules/**/*"
+  ],
+  "directories": {
+    "output": "desktop-ui/dist"
+  },
+  "files": [
+    "desktop-ui/main.js",
+    "desktop-ui/preload.js",
+    "desktop-ui/renderer/**/*",
+    "desktop-ui/assets/**/*",
+    "bin/**/*",
+    "lib/**/*",
+    "config/**/*",
+    "scripts/**/*",
+    "node_modules/**/*",
+    "!node_modules/.cache/**",
+    "!node_modules/.bin/**",
+    "!backups/**",
+    "!test/**",
+    "!desktop-ui/dist/**",
+    "!desktop-ui/build/**",
+    "!**/*.log",
+    "!**/*.md",
+    "!**/.git/**"
+  ],
+  "extraMetadata": {
+    "main": "desktop-ui/main.js"
+  },
+  "win": {
+    "icon": "desktop-ui/assets/reclaw.ico",
+    "target": [
+      {
+        "target": "nsis",
+        "arch": [
+          "x64"
+        ]
+      },
+      {
+        "target": "portable",
+        "arch": [
+          "x64"
+        ]
+      }
+    ]
+  },
+  "mac": {
+    "icon": "desktop-ui/assets/reclaw.icns",
+    "target": [
+      {
+        "target": "dmg",
+        "arch": [
+          "arm64"
+        ]
+      },
+      {
+        "target": "zip",
+        "arch": [
+          "arm64"
+        ]
+      }
+    ],
+    "category": "public.app-category.productivity"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "perMachine": false
+  }
+}
