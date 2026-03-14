@@ -7,9 +7,7 @@ OpenClaw backup and restore. Because things break.
 <img width="546" height="700" alt="Image" src="https://github.com/user-attachments/assets/12535a56-6783-4e91-8dd3-d48bc5ed0eb9" />
 
 [![GitHub issues](https://img.shields.io/github/issues/JacobTheJacobs/ReClaw?style=for-the-badge)](https://github.com/JacobTheJacobs/ReClaw/issues)
-
-<script type='text/javascript' src='https://storage.ko-fi.com/cdn/widget/Widget_2.js'></script>
-<script type='text/javascript'>kofiwidget2.init('Support me on Ko-fi', '#72a4f2', 'S6S11V8OSZ');kofiwidget2.draw();</script>
+[![Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/S6S11V8OSZ)
 
 ```
     __      __
