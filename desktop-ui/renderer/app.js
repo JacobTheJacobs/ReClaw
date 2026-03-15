@@ -352,7 +352,7 @@ function appendLog(line, level = 'info') {
       setGuidanceHint('Gateway service exists but exits immediately. Disable Autostart, Kill Gateway Processes, then Install + Start.', 'warn');
       setRecommendedAction(ACTION_GATEWAY_DISABLE_AUTOSTART, 'Remove autostart/login task and reinstall gateway');
     } else if (/gateway service missing/i.test(entry) || /ECONNREFUSED 127\.0\.0\.1:18789/i.test(entry)) {
-      setGuidanceHint('Gateway refused connection. Run “Kill Gateway Processes” then “OC Gateway Install + Start”; if it persists, run “OC Gateway Run (No Autostart)” and Refresh.', 'warn');
+      setGuidanceHint('Gateway refused connection. If already installed, try “OC Gateway Start” or “OC Gateway Run (No Autostart)”. Otherwise “Kill Gateway Processes” → “OC Gateway Install + Start”, then Refresh.', 'warn');
       setRecommendedAction(ACTION_GATEWAY_KILL, 'Kill stuck gateway processes');
     } else if (/gateway service already registered/i.test(entry)) {
       setGuidanceHint('Gateway registered but offline. Run “OC Gateway Install + Start (force)” or “OC Gateway Run (No Autostart)”.', 'warn');
@@ -416,7 +416,7 @@ function appendLog(line, level = 'info') {
         setGuidanceHint('Gateway failed repeatedly. Disable autostart/login task, then Kill and Install + Start.', 'warn');
         setRecommendedAction(ACTION_GATEWAY_DISABLE_AUTOSTART, 'Remove scheduled task causing popup loops');
       } else {
-        setGuidanceHint('Gateway failed to start. Run “OC Gateway Kill” then “OC Gateway Install + Start”. If still offline, open gateway logs.', 'warn');
+        setGuidanceHint('Gateway failed to start. If already installed, try “OC Gateway Start” or “Run (No Autostart)”. Otherwise “OC Gateway Kill” → “OC Gateway Install + Start”. If still offline, open gateway logs.', 'warn');
         setRecommendedAction(ACTION_GATEWAY_KILL, 'Kill stuck gateway processes');
       }
   } else if (/backup created successfully/i.test(entry) || /backup saved to/i.test(entry) || /backup complete/i.test(entry)) {
@@ -572,7 +572,7 @@ function setGatewayStatus(status) {
   } else if (guidanceWhenOffline()) {
     // hint handled above
   } else if (refused) {
-    setGuidanceHint('Gateway refused connection. Run “Kill Gateway Processes” then “OC Gateway Install + Start”; if it persists, run “OC Gateway Run (No Autostart)” and Refresh.', 'warn');
+    setGuidanceHint('Gateway refused connection. If already installed, try “OC Gateway Start” or “OC Gateway Run (No Autostart)”. Otherwise “Kill Gateway Processes” → “OC Gateway Install + Start”, then Refresh.', 'warn');
     setRecommendedAction(ACTION_GATEWAY_KILL, 'Kill stuck gateway processes');
   } else {
     setGuidanceHint('Gateway offline. Run “OC Gateway Install + Start” (force) then refresh. If it still fails, open logs.', 'warn');

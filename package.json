@@ -1,6 +1,6 @@
 {
   "name": "@jacobthejacobs/reclaw",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "OpenClaw Recover Backup & Restore - A simple command-line tool to back up and restore your entire OpenClaw configuration.",
   "main": "lib/index.js",
   "bin": {
