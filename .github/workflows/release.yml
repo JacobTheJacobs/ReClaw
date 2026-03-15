@@ -23,6 +23,8 @@ jobs:
 
       - name: Build macOS DMG
         run: npm run desktop:pack:mac
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
@@ -46,6 +48,8 @@ jobs:
 
       - name: Build Windows installer
         run: npm run desktop:pack:win
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
