@@ -18,6 +18,41 @@ function Log([string]$msg) {
   Write-Host "[nuke-win] $msg"
 }
 
+function Stop-ProcessOnPort([int]$Port) {
+  try {
+    $conn = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($null -ne $conn -and $conn.OwningProcess) {
+      $pid = [int]$conn.OwningProcess
+      $proc = Get-Process -Id $pid -ErrorAction SilentlyContinue
+      if ($proc) {
+        Log "Stopping process on port $Port (PID $pid)"
+        Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
+      }
+    }
+  } catch {}
+}
+
+function Remove-OpenClawServices {
+  try {
+    $services = Get-Service -ErrorAction SilentlyContinue |
+      Where-Object { $_.Name -match 'openclaw' -or $_.DisplayName -match 'openclaw' }
+
+    foreach ($svc in $services) {
+      try {
+        if ($svc.Status -ne 'Stopped') {
+          Log "Stopping service: $($svc.Name)"
+          Stop-Service -Name $svc.Name -Force -ErrorAction SilentlyContinue
+        }
+      } catch {}
+
+      try {
+        Log "Removing service: $($svc.Name)"
+        sc.exe delete $svc.Name | Out-Null
+      } catch {}
+    }
+  } catch {}
+}
+
 function Get-DefaultOpenClawRepoPath() {
   $root = if (-not [string]::IsNullOrWhiteSpace($env:PUBLIC)) {
     Join-Path $env:PUBLIC 'openclaw-src'
@@ -61,7 +96,10 @@ try { & openclaw gateway stop | Out-Null } catch {}
 try { & openclaw gateway uninstall | Out-Null } catch {}
 try { & openclaw uninstall --all --yes --non-interactive | Out-Null } catch {}
 
+Remove-OpenClawServices
+
 Get-Process openclaw* -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+Stop-ProcessOnPort 18789
 
 Log "Removing OpenClaw state/config leftovers"
 Remove-Item -Recurse -Force "$env:USERPROFILE\.openclaw" -ErrorAction SilentlyContinue

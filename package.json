@@ -1,6 +1,6 @@
 {
-  "name": "reclaw",
-  "version": "1.0.0",
+  "name": "@jacobthejacobs/reclaw",
+  "version": "1.0.1",
   "description": "OpenClaw Recover Backup & Restore - A simple command-line tool to back up and restore your entire OpenClaw configuration.",
   "main": "lib/index.js",
   "bin": {
@@ -19,8 +19,8 @@
     "verify:health": "curl -fsS http://127.0.0.1:18789/healthz",
     "verify:health:node": "node scripts/verify-gateway-health.js",
     "verify:all": "npm run verify:restored && npm run verify:health",
-    "gateway:url": "node scripts/ensure-gateway-token.js",
-    "script:gateway:url": "node scripts/ensure-gateway-token.js",
+    "gateway:url": "node scripts/ensure-gateway-token.js --copy",
+    "script:gateway:url": "node scripts/ensure-gateway-token.js --copy",
     "dashboard:open": "node scripts/ensure-gateway-token.js --open",
     "script:dashboard:open": "node scripts/ensure-gateway-token.js --open",
     "desktop:open": "electron ./desktop-ui/main.js",
@@ -47,7 +47,7 @@
     "script:install:windows": "pwsh -File scripts/install-windows.ps1",
     "recover:flow": "npm run verify:empty && npm run recover:local && npm run verify:all",
     "recover:flow:windows": "npm run test:recovery:windows",
-    "postinstall": "node scripts/postinstall-banner.js && node scripts/ensure-gateway-token.js",
+    "postinstall": "node scripts/postinstall-banner.js",
     "backup": "node bin/cli.js backup",
     "backup:create": "node bin/cli.js backup create",
     "backup:verify": "node bin/cli.js backup verify",
@@ -120,6 +120,9 @@
     "url": "https://github.com/JacobTheJacobs/ReClaw/issues"
   },
   "homepage": "https://github.com/JacobTheJacobs/ReClaw#readme",
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "adm-zip": "^0.5.10",
     "archiver": "^7.0.0",

@@ -3,7 +3,7 @@ const path = require('path');
 const http = require('http');
 const os = require('os');
 const { app, BrowserWindow, dialog, ipcMain, shell } = require('electron');
-const { spawn } = require('child_process');
+const { spawn, spawnSync } = require('child_process');
 
 // When packaged, bin/lib/scripts are extracted to app.asar.unpacked — spawn can't read inside .asar
 const repoRoot = (function () {
@@ -13,6 +13,9 @@ const repoRoot = (function () {
   }
   return base;
 }());
+const disableGatewayAutostartPath = path.join(repoRoot, 'scripts', 'disable-gateway-autostart.js');
+const killGatewayProcessesPath = path.join(repoRoot, 'scripts', 'kill-gateway-processes.js');
+const startGatewayDetachedPath = path.join(repoRoot, 'scripts', 'start-gateway-detached.js');
 function resolveBackupDir() {
   return (
     process.env.RECLAW_BACKUP_DIR ||
@@ -63,9 +66,54 @@ function resolveNodeExecutable() {
   return 'node';
 }
 const nodeExecutable = resolveNodeExecutable();
+
+function resolveOpenclawExecutable() {
+  const envCandidate = process.env.RECLAW_OPENCLAW_PATH || process.env.OPENCLAW_EXE || null;
+  const candidates = [];
+
+  if (envCandidate) candidates.push(envCandidate);
+
+  if (process.platform === 'win32') {
+    const roamingNpm = process.env.APPDATA ? path.join(process.env.APPDATA, 'npm', 'openclaw.cmd') : null;
+    const pfNode = process.env.ProgramFiles ? path.join(process.env.ProgramFiles, 'nodejs', 'openclaw.cmd') : null;
+    const pf86Node = process.env['ProgramFiles(x86)'] ? path.join(process.env['ProgramFiles(x86)'], 'nodejs', 'openclaw.cmd') : null;
+    [roamingNpm, pfNode, pf86Node].forEach((p) => p && candidates.push(p));
+    candidates.push('openclaw.cmd'); // PATH fallback
+  } else {
+    candidates.push('/usr/local/bin/openclaw', '/opt/homebrew/bin/openclaw', '/usr/bin/openclaw', 'openclaw');
+  }
+
+  for (const cand of candidates) {
+    try {
+      const resolved = path.resolve(cand);
+      if (fs.existsSync(resolved) && fs.statSync(resolved).isFile()) {
+        return resolved;
+      }
+    } catch (_) {
+      // ignore
+    }
+  }
+
+  return process.platform === 'win32' ? 'openclaw.cmd' : 'openclaw';
+}
+const openclawExecutable = resolveOpenclawExecutable();
 const APP_ID = 'com.jacobthejacobs.reclaw';
 const MATRIX_ACTION_TIMEOUT_MS = 45000;
 const MATRIX_ACTION_TIMEOUT_EXEMPT = new Set(['oc-logs-follow']);
+
+function isOpenclawAvailable() {
+  try {
+    const res = spawnSync(openclawExecutable, ['--version'], {
+      env: getAugmentedEnv(),
+      windowsHide: true,
+      timeout: 4000,
+    });
+    if (res && res.error && res.error.code === 'ENOENT') return false;
+    return Number(res.status) === 0;
+  } catch (_) {
+    return false;
+  }
+}
 
 let activeProcess = null;
 
@@ -130,6 +178,39 @@ function getProfile() {
   return process.platform === 'win32' ? 'windows' : 'unix';
 }
 
+function hasGatewayAutostart() {
+  if (process.platform !== 'win32') {
+    return false;
+  }
+
+  const startupShortcut = path.join(
+    process.env.APPDATA || '',
+    'Microsoft',
+    'Windows',
+    'Start Menu',
+    'Programs',
+    'Startup',
+    'OpenClaw Gateway.lnk',
+  );
+
+  const shortcutExists = startupShortcut && fs.existsSync(startupShortcut);
+
+  const taskNames = ['OpenClaw Gateway', 'OpenClawGateway', 'OpenClawGatewayTask'];
+  const taskExists = taskNames.some((name) => {
+    try {
+      const result = require('child_process').spawnSync('schtasks', ['/Query', '/TN', name], {
+        windowsHide: true,
+        stdio: 'ignore',
+      });
+      return result && Number(result.status) === 0;
+    } catch (_) {
+      return false;
+    }
+  });
+
+  return Boolean(shortcutExists || taskExists);
+}
+
 function quoteIfNeeded(value) {
   if (!value) {
     return '""';
@@ -146,9 +227,21 @@ function formatCommand(filePath, args) {
 }
 
 function createStep(label, filePath, args, options = {}) {
+  let commandPath = filePath;
+  if (filePath === 'openclaw') {
+    commandPath = openclawExecutable;
+  }
+  let commandArgs = args || [];
+
+  // On Windows, running a .cmd via spawn without cmd.exe can throw EINVAL on some setups.
+  if (process.platform === 'win32' && /\.cmd$/i.test(commandPath)) {
+    commandArgs = ['/c', commandPath, ...commandArgs];
+    commandPath = 'cmd.exe';
+  }
+
   const stepEnv = { ...(options.env || {}) };
   // Electron main process uses Electron binary as execPath; force Node mode for script steps.
-  if (filePath === nodeExecutable && process.versions && process.versions.electron) {
+  if (commandPath === nodeExecutable && process.versions && process.versions.electron) {
     stepEnv.ELECTRON_RUN_AS_NODE = '1';
   }
 
@@ -164,8 +257,8 @@ function createStep(label, filePath, args, options = {}) {
 
   return {
     label,
-    filePath,
-    args,
+    filePath: commandPath,
+    args: commandArgs,
     cwd: repoRoot,
     timeoutMs: Number.isFinite(options.timeoutMs) ? options.timeoutMs : null,
     env: stepEnv,
@@ -595,6 +688,15 @@ const OPENCLAW_MATRIX_ACTIONS = [
     commandArgs: ['openclaw', 'gateway', 'start'],
   },
   {
+    id: 'oc-gateway-run',
+    label: 'OC Gateway Run (No Autostart)',
+    emoji: '🚀',
+    description: 'Run openclaw gateway run --port 18789 without registering a login task.',
+    group: 'tools',
+    requiresPassword: false,
+    destructive: false,
+  },
+  {
     id: 'oc-gateway-stop',
     label: 'OC Gateway Stop',
     emoji: '⏹️',
@@ -644,6 +746,34 @@ const OPENCLAW_MATRIX_ACTIONS = [
     requiresPassword: false,
     destructive: false,
     commandArgs: ['openclaw', 'gateway', 'install'],
+  },
+  {
+    id: 'oc-gateway-install-start',
+    label: 'OC Gateway Install + Start',
+    emoji: '⚡',
+    description: 'Force install then start gateway (18789).',
+    group: 'tools',
+    requiresPassword: false,
+    destructive: false,
+  },
+  {
+    id: 'oc-gateway-kill',
+    label: 'Kill Gateway Processes',
+    emoji: '🛑',
+    description: 'Force-kill processes using gateway (port 18789).',
+    group: 'danger',
+    requiresPassword: false,
+    destructive: true,
+    confirmPhrase: 'KILL',
+  },
+  {
+    id: 'install-openclaw-cli',
+    label: 'Install OpenClaw CLI',
+    emoji: '⬇️',
+    description: 'Run npm install -g openclaw@latest.',
+    group: 'tools',
+    requiresPassword: false,
+    destructive: false,
   },
   {
     id: 'oc-gateway-uninstall',
@@ -757,6 +887,16 @@ function getActions(profile) {
     return [
       ...common,
       ...operations,
+      {
+        id: 'oc-gateway-disable-autostart',
+        label: 'Disable Gateway Autostart',
+        emoji: '🚫',
+        description: 'Remove gateway login task/startup (fixes flashing console).',
+        group: 'danger',
+        requiresPassword: false,
+        destructive: true,
+        confirmPhrase: 'DISABLE',
+      },
       {
         id: 'reset',
         label: 'Wipe Local Data',
@@ -880,6 +1020,9 @@ function buildActionPlan(actionId, payload, profile) {
   const verifyStatePath = path.join(repoRoot, 'scripts', 'verify-openclaw-state.js');
   const verifyHealthPath = path.join(repoRoot, 'scripts', 'verify-gateway-health.js');
   const cleanupPluginsPath = path.join(repoRoot, 'scripts', 'cleanup-openclaw-plugins.js');
+  const killGatewayProcessesPath = path.join(repoRoot, 'scripts', 'kill-gateway-processes.js');
+  const disableGatewayAutostartPath = path.join(repoRoot, 'scripts', 'disable-gateway-autostart.js');
+  const installOpenclawCliPath = path.join(repoRoot, 'scripts', 'install-openclaw-cli.js');
   const resetWindowsPath = path.join(repoRoot, 'scripts', 'full-reset-openclaw.ps1');
   const nukeWindowsPath = path.join(repoRoot, 'scripts', 'full-nuke-openclaw.ps1');
   const recoverWindowsPath = path.join(repoRoot, 'scripts', 'recover-openclaw-local-windows.ps1');
@@ -895,6 +1038,7 @@ function buildActionPlan(actionId, payload, profile) {
   const backupDir = resolveBackupDir();
   const resetBackupDir = resolveResetBackupDir();
   const backupEnv = { BACKUP_DIR: backupDir };
+  const needsCli = !isOpenclawAvailable();
 
   const requirePassword = () => {
     if (!password) {
@@ -904,6 +1048,70 @@ function buildActionPlan(actionId, payload, profile) {
 
   const matrixAction = OPENCLAW_MATRIX_ACTIONS.find((entry) => entry.id === actionId);
   if (matrixAction) {
+    if (matrixAction.id === 'oc-gateway-install-start') {
+      const steps = [];
+      if (needsCli) {
+        steps.push(createStep('Install OpenClaw CLI (npm -g)', nodeExecutable, [installOpenclawCliPath]));
+      }
+      steps.push(
+        createStep('Disable gateway autostart/login task', nodeExecutable, [disableGatewayAutostartPath]),
+        createStep('Kill gateway processes', nodeExecutable, [killGatewayProcessesPath], { timeoutMs: 15000 }),
+        createStep('Gateway install (force)', 'openclaw', ['gateway', 'install', '--force']),
+        createStep('Disable gateway autostart/login task', nodeExecutable, [disableGatewayAutostartPath]),
+        createStep('Gateway start', 'openclaw', ['gateway', 'start']),
+        createStep('Gateway run fallback (detached)', nodeExecutable, [startGatewayDetachedPath]),
+        createStep('Check gateway status', 'openclaw', ['gateway', 'status']),
+      );
+      return { steps };
+    }
+
+    if (matrixAction.id === 'oc-gateway-start') {
+      const steps = [];
+      if (needsCli) {
+        steps.push(createStep('Install OpenClaw CLI (npm -g)', nodeExecutable, [installOpenclawCliPath]));
+      }
+      steps.push(
+        createStep('Disable gateway autostart/login task', nodeExecutable, [disableGatewayAutostartPath]),
+        createStep('Kill gateway processes', nodeExecutable, [killGatewayProcessesPath], { timeoutMs: 15000 }),
+        createStep('Gateway start', 'openclaw', ['gateway', 'start']),
+        createStep('Gateway run fallback (detached)', nodeExecutable, [startGatewayDetachedPath]),
+        createStep('Check gateway status', 'openclaw', ['gateway', 'status']),
+      );
+      return { steps };
+    }
+
+    if (matrixAction.id === 'oc-gateway-run') {
+      const steps = [];
+      if (needsCli) {
+        steps.push(createStep('Install OpenClaw CLI (npm -g)', nodeExecutable, [installOpenclawCliPath]));
+      }
+      steps.push(
+        createStep('Disable gateway autostart/login task', nodeExecutable, [disableGatewayAutostartPath]),
+        createStep('Kill gateway processes', nodeExecutable, [killGatewayProcessesPath], { timeoutMs: 15000 }),
+        createStep('Gateway run (no login task)', nodeExecutable, [startGatewayDetachedPath]),
+        createStep('Check gateway status', 'openclaw', ['gateway', 'status']),
+      );
+      return { steps };
+    }
+
+    if (matrixAction.id === 'oc-gateway-kill') {
+      const steps = [
+          createStep('Kill gateway processes', nodeExecutable, [killGatewayProcessesPath], { timeoutMs: 15000 }),
+      ];
+      if (!needsCli) {
+        steps.push(createStep('Gateway status after kill', 'openclaw', ['gateway', 'status']));
+      }
+      return { steps };
+    }
+
+    if (matrixAction.id === 'install-openclaw-cli') {
+      return {
+        steps: [
+          createStep('Install OpenClaw CLI (npm -g)', nodeExecutable, [installOpenclawCliPath]),
+        ],
+      };
+    }
+
     if (matrixAction.id === 'oc-update-pull') {
       const openclawRepoDir = resolveOpenclawRepoDir();
       if (!openclawRepoDir) {
@@ -1004,6 +1212,16 @@ function buildActionPlan(actionId, payload, profile) {
         steps: [createStep('Open dashboard in browser', nodeExecutable, [tokenScriptPath, '--open'])],
       };
 
+    case 'oc-gateway-disable-autostart':
+      if (profile !== 'windows') {
+        throw new Error('Disable autostart is available on Windows only.');
+      }
+      return {
+        steps: [
+          createStep('Disable gateway autostart/login task', nodeExecutable, [disableGatewayAutostartPath]),
+        ],
+      };
+
     case 'reset':
       if (profile === 'windows') {
         if (!powershell) {
@@ -1011,6 +1229,8 @@ function buildActionPlan(actionId, payload, profile) {
         }
         const resetArgs = [
           '-NoProfile',
+          '-WindowStyle',
+          'Hidden',
           '-ExecutionPolicy',
           'Bypass',
           '-File',
@@ -1056,6 +1276,8 @@ function buildActionPlan(actionId, payload, profile) {
           steps: [
             createStep('Nuke local OpenClaw', powershell, [
               '-NoProfile',
+              '-WindowStyle',
+              'Hidden',
               '-ExecutionPolicy',
               'Bypass',
               '-File',
@@ -1084,6 +1306,8 @@ function buildActionPlan(actionId, payload, profile) {
         }
         const recoverArgs = [
           '-NoProfile',
+          '-WindowStyle',
+          'Hidden',
           '-ExecutionPolicy',
           'Bypass',
           '-File',
@@ -1118,6 +1342,8 @@ function buildActionPlan(actionId, payload, profile) {
           steps: [
             createStep('Fresh install OpenClaw (no restore)', powershell, [
               '-NoProfile',
+              '-WindowStyle',
+              'Hidden',
               '-ExecutionPolicy',
               'Bypass',
               '-File',
@@ -1156,6 +1382,8 @@ function buildActionPlan(actionId, payload, profile) {
         steps: [
           createStep('Run full recovery drill', powershell, [
             '-NoProfile',
+            '-WindowStyle',
+            'Hidden',
             '-ExecutionPolicy',
             'Bypass',
             '-File',
@@ -1362,19 +1590,11 @@ function spawnOpenclawCommand(args, options = {}) {
     cwd: options.cwd || repoRoot,
   };
 
-  if (process.platform === 'win32') {
-    const comspec = process.env.ComSpec || 'cmd.exe';
-    const escapedArgs = (args || []).map((arg) => {
-      const value = String(arg);
-      if (/\s|"/.test(value)) {
-        return `"${value.replace(/"/g, '\\"')}"`;
-      }
-      return value;
-    });
-    return spawn(comspec, ['/d', '/s', '/c', `openclaw ${escapedArgs.join(' ')}`], spawnOptions);
+  if (process.platform === 'win32' && /\.cmd$/i.test(openclawExecutable)) {
+    return spawn('cmd.exe', ['/c', openclawExecutable, ...(args || [])], spawnOptions);
   }
 
-  return spawn('openclaw', args || [], spawnOptions);
+  return spawn(openclawExecutable, args || [], spawnOptions);
 }
 
 function runOpenclawCommandWithLogs(label, args, options = {}) {
@@ -1557,15 +1777,17 @@ async function launchWindowsGatewayFallback() {
     const tmpRoot = path.join(process.env.TEMP || process.env.TMP || os.tmpdir(), 'openclaw');
     fs.mkdirSync(tmpRoot, { recursive: true });
     const runLogPath = path.join(tmpRoot, 'gateway-detached.log');
-    const launchCmd = `openclaw gateway run --port 18789 > "${runLogPath}" 2>&1`;
-    const comspec = process.env.ComSpec || 'cmd.exe';
-    const launcher = spawn(comspec, ['/d', '/c', launchCmd], {
+    const outFd = fs.openSync(runLogPath, 'a');
+    const errFd = fs.openSync(runLogPath, 'a');
+    const launcher = spawn('openclaw.cmd', ['gateway', 'run', '--port', '18789'], {
       env,
       shell: false,
       windowsHide: true,
       detached: true,
-      stdio: 'ignore',
+      stdio: ['ignore', outFd, errFd],
     });
+    fs.closeSync(outFd);
+    fs.closeSync(errFd);
     launcher.unref();
     sendLog('warn', 'Gateway fallback launch attempted via `openclaw gateway run --port 18789`.');
     return true;
@@ -1601,6 +1823,12 @@ async function launchWindowsGatewayFallback() {
 }
 
 async function ensureGatewayOnline(options = {}) {
+  const allowAutoStart = options.manual === true || process.env.RECLAW_ALLOW_AUTO_GATEWAY === '1';
+  if (!allowAutoStart) {
+    sendLog('warn', 'Auto gateway start is disabled. Use “OC Gateway Install + Start” from the UI.');
+    return { ok: false, skipped: true, error: 'auto-start disabled' };
+  }
+
   const installIfNeeded = options.installIfNeeded !== false;
   const timeoutMs = Number.isFinite(options.timeoutMs) ? Math.max(5000, Number(options.timeoutMs)) : 45000;
   const homeDir = process.env.HOME || process.env.USERPROFILE || '';
@@ -1621,7 +1849,8 @@ async function ensureGatewayOnline(options = {}) {
     }
   }
 
-  if (installIfNeeded && (!hasWindowsGatewayScript || process.platform !== 'win32')) {
+  // Always attempt install when requested; Windows with gateway.cmd still benefits if service is missing.
+  if (installIfNeeded) {
     try {
       await runOpenclawCommandWithLogs('Install gateway service', ['gateway', 'install'], { timeoutMs: 120000 });
     } catch (error) {
@@ -1675,6 +1904,39 @@ async function ensureGatewayOnline(options = {}) {
     readyStatus = await waitForGatewayReady(30000, 1000);
     if (readyStatus && readyStatus.running) {
       return { ok: true, started: true, fallback: true, status: readyStatus };
+    }
+  }
+
+  // Windows: final auto-remediation — remove autostart task, kill stuck procs, reinstall + start once more.
+  if (process.platform === 'win32') {
+    try {
+      sendLog('warn', 'Gateway still offline. Removing autostart/login task and retrying install + start.');
+      await runCommandStep(createStep('Disable gateway autostart/login task', nodeExecutable, [disableGatewayAutostartPath]));
+    } catch (error) {
+      sendLog('warn', `Autostart removal step reported: ${error.message}`);
+    }
+
+    try {
+      await runCommandStep(createStep('Kill gateway processes', nodeExecutable, [killGatewayProcessesPath], { timeoutMs: 15000 }));
+    } catch (error) {
+      sendLog('warn', `Gateway kill step reported: ${error.message}`);
+    }
+
+    try {
+      await runOpenclawCommandWithLogs('Install gateway service (force)', ['gateway', 'install', '--force'], { timeoutMs: 120000 });
+    } catch (error) {
+      sendLog('warn', `Gateway install (force) retry reported: ${error.message}`);
+    }
+
+    try {
+      await runOpenclawCommandWithLogs('Start gateway service (retry)', ['gateway', 'start'], { timeoutMs: 45000 });
+    } catch (error) {
+      sendLog('warn', `Gateway start (retry) reported: ${error.message}`);
+    }
+
+    readyStatus = await waitForGatewayReady(30000, 1000);
+    if (readyStatus && readyStatus.running) {
+      return { ok: true, started: true, retry: 'auto-remediate', status: readyStatus };
     }
   }
 
@@ -1863,10 +2125,9 @@ ipcMain.handle('app:check-openclaw', async () => {
     };
 
     const runWindowsWhereFallback = () => {
-      const comspec = process.env.ComSpec || 'cmd.exe';
       let whereProc;
       try {
-        whereProc = spawn(comspec, ['/d', '/s', '/c', 'where openclaw'], {
+        whereProc = spawn('where.exe', ['openclaw'], {
           env,
           shell: false,
           windowsHide: true,
@@ -1880,10 +2141,9 @@ ipcMain.handle('app:check-openclaw', async () => {
     };
 
     if (process.platform === 'win32') {
-      const comspec = process.env.ComSpec || 'cmd.exe';
       let probe;
       try {
-        probe = spawn(comspec, ['/d', '/s', '/c', 'openclaw --version'], {
+        probe = spawn('openclaw.cmd', ['--version'], {
           env,
           shell: false,
           windowsHide: true,
@@ -1961,6 +2221,7 @@ ipcMain.handle('app:install-openclaw', async () => {
     sendLog('info', 'Installing OpenClaw via npm install -g openclaw@latest …');
     const installEnv = { ...getAugmentedEnv(), SHARP_IGNORE_GLOBAL_LIBVIPS: '1' };
     const installArgs = ['install', '-g', 'openclaw@latest', '--no-fund', '--no-audit', '--loglevel=error'];
+    const npmExe = resolveNpmExecutable();
     const spawnOptions = {
       env: installEnv,
       shell: false,
@@ -1969,16 +2230,20 @@ ipcMain.handle('app:install-openclaw', async () => {
 
     let proc;
     try {
-      if (process.platform === 'win32') {
-        const comspec = process.env.ComSpec || 'cmd.exe';
-        proc = spawn(comspec, ['/d', '/s', '/c', `npm ${installArgs.join(' ')}`], spawnOptions);
-      } else {
-        proc = spawn('npm', installArgs, spawnOptions);
-      }
+      proc = spawn(npmExe, installArgs, spawnOptions);
     } catch (error) {
-      sendLog('error', `Failed to launch installer process: ${error.message}`);
-      resolve({ ok: false, error: error.message });
-      return;
+      // Fallback: try with shell so cmd.exe resolves npm, captures EINVAL cases.
+      try {
+        proc = spawn(process.platform === 'win32' ? 'cmd.exe' : 'sh', [
+          process.platform === 'win32' ? '/c' : '-c',
+          `${npmExe} ${installArgs.join(' ')}`,
+        ], { ...spawnOptions, shell: false });
+      } catch (err) {
+        const message = `Failed to launch npm (Node.js missing?). ${err.message || error.message}`;
+        sendLog('error', message);
+        resolve({ ok: false, error: message });
+        return;
+      }
     }
 
     let settled = false;
@@ -2011,12 +2276,17 @@ ipcMain.handle('app:install-openclaw', async () => {
 
     proc.on('error', (err) => {
       if (err.code === 'ENOENT') {
-        const msg = 'npm was not found. Make sure Node.js is installed: https://nodejs.org';
+        const msg = 'npm was not found. Install Node.js from https://nodejs.org and reopen ReClaw.';
+        sendLog('error', msg);
+        finish({ ok: false, error: msg });
+      } else if (err.code === 'EINVAL') {
+        const msg = 'npm launch failed (EINVAL). Try running ReClaw from PowerShell or reinstall Node.js so npm.cmd is on PATH.';
         sendLog('error', msg);
         finish({ ok: false, error: msg });
       } else {
-        sendLog('error', `Failed to launch npm: ${err.message}`);
-        finish({ ok: false, error: err.message });
+        const msg = `Failed to launch npm: ${err.message}`;
+        sendLog('error', msg);
+        finish({ ok: false, error: msg });
       }
     });
   });
@@ -2104,6 +2374,7 @@ ipcMain.handle('app:wizard-restore', async (_event, { archivePath, password }) =
         env: wizardEnv,
         cwd: repoRoot,
         shell: false,
+        windowsHide: true,
       });
     } catch (err) {
       sendLog('warn', `Restore failed to spawn: ${err.message}`);
@@ -2150,6 +2421,14 @@ ipcMain.handle('app:get-context', async () => {
 
 ipcMain.handle('app:get-gateway-status', async () => {
   return checkGatewayStatus();
+});
+
+ipcMain.handle('app:get-gateway-autostart', async () => {
+  try {
+    return { present: hasGatewayAutostart() };
+  } catch (error) {
+    return { present: false, error: error.message || 'autostart check failed' };
+  }
 });
 
 ipcMain.handle('app:ensure-gateway-online', async (_, options = {}) => {
@@ -2278,3 +2557,28 @@ ipcMain.handle('app:run-action', async (_, payload) => {
     sendStatus(completionStatus);
   }
 });
+function resolveNpmExecutable() {
+  const envPath = (process.env.PATH || '').split(path.delimiter).filter(Boolean);
+  const candidates = [];
+  // Common install locations on Windows
+  candidates.push(
+    path.join(process.env.APPDATA || '', 'npm', 'npm.cmd'),
+    path.join(process.env.ProgramFiles || '', 'nodejs', 'npm.cmd'),
+    path.join(process.env['ProgramFiles(x86)'] || '', 'nodejs', 'npm.cmd'),
+  );
+  // Generic PATH entries
+  envPath.forEach((p) => {
+    candidates.push(path.join(p, process.platform === 'win32' ? 'npm.cmd' : 'npm'));
+  });
+
+  for (const cand of candidates) {
+    try {
+      if (cand && fs.existsSync(cand) && fs.statSync(cand).isFile()) {
+        return cand;
+      }
+    } catch (_) {
+      // ignore
+    }
+  }
+  return process.platform === 'win32' ? 'npm.cmd' : 'npm';
+}

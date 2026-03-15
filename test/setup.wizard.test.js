@@ -64,11 +64,15 @@ describe('main.js: setup wizard IPC handlers', () => {
   });
 
   test('install-openclaw streams stdout/stderr via sendLog (live output)', () => {
-    // Find the install handler block and ensure it pipes output
+    // Find the install handler block and ensure it pipes output.
+    // Slice until the next handler to avoid brittle fixed-size blocks.
     const installIdx = mainSrc.indexOf("'app:install-openclaw'");
-    const block = mainSrc.slice(installIdx, installIdx + 1200);
+    const nextIdx = mainSrc.indexOf("'app:onboard-openclaw'", installIdx);
+    const block = mainSrc.slice(installIdx, nextIdx > installIdx ? nextIdx : installIdx + 12000);
+
     expect(block).toContain('sendLog');
-    expect(block).toMatch(/stdout|stderr/);
+    expect(block).toMatch(/proc\.stdout|sendLog\(\s*'stdout'/);
+    expect(block).toMatch(/proc\.stderr|sendLog\(\s*'stderr'/);
   });
 });
 
@@ -162,9 +166,10 @@ describe('renderer app.js: wizard logic', () => {
     expect(fnBlock).toContain('installOpenClaw');
   });
 
-  test('runSetupWizard() calls onboardOpenClaw after install succeeds', () => {
-    const fnIdx = rendererSrc.indexOf('async function runSetupWizard');
-    const fnBlock = rendererSrc.slice(fnIdx, fnIdx + 1500);
+  test('runOnboardStep() calls onboardOpenClaw (interactive onboarding)', () => {
+    const fnIdx = rendererSrc.indexOf('async function runOnboardStep');
+    const nextIdx = rendererSrc.indexOf('async function runSetupWizard', fnIdx);
+    const fnBlock = rendererSrc.slice(fnIdx, nextIdx > fnIdx ? nextIdx : fnIdx + 8000);
     expect(fnBlock).toContain('onboardOpenClaw');
   });
 
@@ -191,7 +196,8 @@ describe('renderer app.js: wizard logic', () => {
   test('initializeMainApp() exists and starts gateway polling', () => {
     expect(rendererSrc).toContain('async function initializeMainApp()');
     const fnIdx = rendererSrc.indexOf('async function initializeMainApp()');
-    const fnBlock = rendererSrc.slice(fnIdx, fnIdx + 600);
+    const nextIdx = rendererSrc.indexOf('async function initialize()', fnIdx);
+    const fnBlock = rendererSrc.slice(fnIdx, nextIdx > fnIdx ? nextIdx : fnIdx + 8000);
     expect(fnBlock).toContain('startGatewayStatusPolling');
     expect(fnBlock).toContain('refreshGatewayStatus');
   });

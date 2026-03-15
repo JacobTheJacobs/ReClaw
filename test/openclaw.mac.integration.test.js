@@ -58,7 +58,8 @@ describe('OpenClaw mac integration hooks during restore', () => {
     expect(restoredContent).toBe('before-backup');
 
     expect(lifecycleCalls).toMatch(/gateway stop/);
-    expect(lifecycleCalls).toMatch(/doctor --repair --non-interactive/);
+    // Some OpenClaw versions require --fix to actually apply repairs; accept either form.
+    expect(lifecycleCalls).toMatch(/doctor (?:--fix )?--repair --non-interactive/);
     expect(lifecycleCalls).toMatch(/gateway restart/);
 
     cliSpy.mockRestore();

@@ -15,6 +15,8 @@ function parseArgs(argv) {
       i += 1;
     } else if (token === '--open') {
       out.open = true;
+    } else if (token === '--copy') {
+      out.copy = true;
     }
   }
   return out;
@@ -185,15 +187,17 @@ function launchWindowsGatewayFallback(homeDir) {
     const tmpRoot = path.join(process.env.TEMP || process.env.TMP || os.tmpdir(), 'openclaw');
     fs.ensureDirSync(tmpRoot);
     const runLogPath = path.join(tmpRoot, 'gateway-detached.log');
-    const launchCmd = `openclaw gateway run --port 18789 > "${runLogPath}" 2>&1`;
-    const comspec = process.env.ComSpec || 'cmd.exe';
-    const launcher = spawn(comspec, ['/d', '/c', launchCmd], {
+    const outFd = fs.openSync(runLogPath, 'a');
+    const errFd = fs.openSync(runLogPath, 'a');
+    const launcher = spawn('openclaw.cmd', ['gateway', 'run', '--port', '18789'], {
       env: safeEnv,
-      shell: false,
+      shell: true, // helps prevent flash windows on some Windows setups
       windowsHide: true,
       detached: true,
-      stdio: 'ignore',
+      stdio: ['ignore', outFd, errFd],
     });
+    fs.closeSync(outFd);
+    fs.closeSync(errFd);
     launcher.unref();
     return true;
   } catch (_) {
@@ -262,45 +266,31 @@ async function ensureGatewayReadyForDashboard(homeDir) {
     return true;
   }
 
-  console.log('   ⚙️ Gateway offline. Starting OpenClaw gateway...');
+  // To reduce flashing consoles, prefer a detached run fallback on Windows; start normally elsewhere.
   const cleanedBeforeStart = cleanupStaleGatewayLocks(homeDir);
   if (cleanedBeforeStart.removed > 0) {
     console.log(`   🧹 Removed ${cleanedBeforeStart.removed} stale gateway lock file(s).`);
   }
+
   let healthy = false;
 
   if (process.platform === 'win32') {
-    const gatewayCmd = path.join(homeDir, 'gateway.cmd');
-    if (!fs.existsSync(gatewayCmd)) {
-      const install = runOpenclaw(['gateway', 'install']);
-      if (install.stdout && String(install.stdout).trim()) {
-        console.log(String(install.stdout).trim());
+    // Try gateway run (detached) first; fall back to start.
+    try {
+      const run = runOpenclaw(['gateway', 'run', '--port', process.env.OPENCLAW_GATEWAY_PORT || '18789']);
+      if (run.stderr && String(run.stderr).trim()) {
+        console.error(String(run.stderr).trim());
       }
-      if (install.stderr && String(install.stderr).trim()) {
-        console.error(String(install.stderr).trim());
-      }
-    }
-
-    const fallbackLaunched = launchWindowsGatewayFallback(homeDir);
-    if (fallbackLaunched) {
-      console.log('   ⚙️ Gateway launch requested. Waiting for gateway...');
       healthy = await waitForGatewayReady(30000, 1000);
+    } catch (_) {
+      // ignore
     }
-
     if (!healthy) {
-      const cleanedBeforeRetry = cleanupStaleGatewayLocks(homeDir);
-      if (cleanedBeforeRetry.removed > 0) {
-        console.log(`   🧹 Removed ${cleanedBeforeRetry.removed} stale gateway lock file(s) before retry.`);
-      }
-
       const start = runOpenclaw(['gateway', 'start']);
-      if (start.stdout && String(start.stdout).trim()) {
-        console.log(String(start.stdout).trim());
-      }
       if (start.stderr && String(start.stderr).trim()) {
         console.error(String(start.stderr).trim());
       }
-      healthy = await waitForGatewayReady(15000, 1000);
+      healthy = await waitForGatewayReady(30000, 1000);
     }
   } else {
     const start = runOpenclaw(['gateway', 'start']);
@@ -318,7 +308,7 @@ async function ensureGatewayReadyForDashboard(homeDir) {
 
   if (!healthy) {
     console.error('   ❌ Gateway is still offline after startup attempt.');
-    console.error('   Tip: run `openclaw gateway start` and then retry Open Dashboard.');
+    console.error('   Tip: run `openclaw gateway start` (or “OC Gateway Install + Start” in ReClaw) then retry Open Dashboard.');
   }
   return healthy;
 }
@@ -352,16 +342,24 @@ async function main() {
   const dashboardUrl = `http://127.0.0.1:18789/#token=${token}`;
   console.log(`   🌐 Dashboard URL (tokenized): ${dashboardUrl}`);
 
-  if (process.platform === 'win32') {
-    spawnSync('clip', { input: dashboardUrl, encoding: 'utf-8', stdio: ['pipe', 'ignore', 'ignore'] });
+  const shouldCopy =
+    args.copy === true ||
+    args.open === true ||
+    process.env.RECLAW_COPY_DASHBOARD_URL === '1' ||
+    process.env.RECLAW_COPY_DASHBOARD_URL === 'true';
+
+  if (shouldCopy) {
+    if (process.platform === 'win32') {
+      spawnSync('clip', { input: dashboardUrl, encoding: 'utf-8', stdio: ['pipe', 'ignore', 'ignore'] });
+    }
+
+    if (process.platform === 'darwin') {
+      // Best-effort clipboard copy for faster UX.
+      spawnSync('pbcopy', { input: dashboardUrl, encoding: 'utf-8', stdio: ['pipe', 'ignore', 'ignore'] });
+    }
   }
 
-  if (process.platform === 'darwin') {
-    // Best-effort clipboard copy for faster UX.
-    spawnSync('pbcopy', { input: dashboardUrl, encoding: 'utf-8', stdio: ['pipe', 'ignore', 'ignore'] });
-  }
-
-  if (args.open || process.env.RECLAW_OPEN_DASHBOARD === '1') {
+  if (args.open) {
     const ready = await ensureGatewayReadyForDashboard(homeDir);
     if (!ready) {
       process.exitCode = 1;
@@ -371,4 +369,8 @@ async function main() {
   }
 }
 
-main().catch(() => process.exit(0));
+main().catch((err) => {
+  const message = err && err.message ? err.message : String(err);
+  console.error(`   ❌ ensure-gateway-token failed: ${message}`);
+  process.exit(1);
+});

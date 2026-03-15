@@ -3,6 +3,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('clawDesktop', {
   getContext: () => ipcRenderer.invoke('app:get-context'),
   getGatewayStatus: () => ipcRenderer.invoke('app:get-gateway-status'),
+  getGatewayAutostart: () => ipcRenderer.invoke('app:get-gateway-autostart'),
   ensureGatewayOnline: (options) => ipcRenderer.invoke('app:ensure-gateway-online', options || {}),
   pickArchive: () => ipcRenderer.invoke('app:pick-archive'),
   checkArchiveEncrypted: (archivePath) => ipcRenderer.invoke('app:check-archive-encrypted', archivePath),

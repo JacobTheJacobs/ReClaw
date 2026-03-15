@@ -18,6 +18,11 @@ const path = require('path');
 const http = require('http');
 const { spawnSync } = require('child_process');
 
+// This file runs real OpenClaw commands and can take minutes (or hang) on machines
+// without a working OpenClaw install. Keep it opt-in for local development only.
+// Run with: RUN_LIVE_TESTS=1 npm test
+const describe = process.env.RUN_LIVE_TESTS === '1' ? global.describe : global.describe.skip;
+
 const CLI   = path.join(__dirname, '..', 'bin', 'cli.js');
 const NODE  = process.execPath;
 const REAL_HOME = process.env.OPENCLAW_HOME || path.join(os.homedir(), '.openclaw');
