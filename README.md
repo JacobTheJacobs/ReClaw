@@ -3,12 +3,18 @@
 ![Windows](https://img.shields.io/badge/Windows-x64-blue?style=for-the-badge)
 ![macOS](https://img.shields.io/badge/macOS-arm64-black?style=for-the-badge)
 
+
 <img width="559" height="677" alt="Image" src="https://github.com/user-attachments/assets/665a12c4-bad7-4b31-bd88-cb2ad2d6dcac" />
+
 <img width="552" height="670" alt="Image" src="https://github.com/user-attachments/assets/03846f2f-769c-469d-8fe6-b751c5cd0d19" />
+
+<img width="546" height="700" alt="Image" src="https://github.com/user-attachments/assets/12535a56-6783-4e91-8dd3-d48bc5ed0eb9" />
+
+![Image](https://github.com/user-attachments/assets/a3cdf4df-5dfa-48d6-971a-636a885e77d5)
+
 
 OpenClaw backup and restore. Because things break.
 
-<img width="546" height="700" alt="Image" src="https://github.com/user-attachments/assets/12535a56-6783-4e91-8dd3-d48bc5ed0eb9" />
 
 > **Safety first (experimental tool):** ReClaw is best-effort automation. Always keep your own manual backup (outside of ReClaw) before running installs, nukes, or restores. If anything goes wrong, you should be able to restore from that independent backup without ReClaw.
 
