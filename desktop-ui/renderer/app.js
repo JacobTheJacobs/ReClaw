@@ -1203,7 +1203,7 @@ function renderActionCard(container, action) {
   button.innerHTML = `
     <span class="card-top">
       <span class="emoji">${action.emoji || '🧩'}</span>
-      ${isPinned ? '<span class="pill-pinned" aria-label="Priority action">★</span>' : ''}
+      ${isPinned ? '<span class="pill-pinned" aria-label="Priority action">📌</span>' : ''}
     </span>
     <span class="title">${action.label}</span>
     <span class="desc">${action.description}</span>
