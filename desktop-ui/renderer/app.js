@@ -261,7 +261,9 @@ function renderVisibleActions() {
         return haystack.includes(query);
       });
 
-  const visible = filtered;
+  const pinnedVisible = filtered.filter((action) => PINNED_LOOKUP.has(action.id));
+  const otherVisible = filtered.filter((action) => !PINNED_LOOKUP.has(action.id));
+  const visible = [...pinnedVisible, ...otherVisible];
 
   actionsGrid.innerHTML = '';
   if (visible.length === 0) {
@@ -270,7 +272,22 @@ function renderVisibleActions() {
     empty.textContent = 'No commands match your search.';
     actionsGrid.appendChild(empty);
   } else {
-    visible.forEach((action) => renderActionCard(actionsGrid, action));
+    if (pinnedVisible.length > 0) {
+      const label = document.createElement('div');
+      label.className = 'actions-section-label';
+      label.innerHTML = '<span class="pin-dot"></span><span>Pinned</span>';
+      actionsGrid.appendChild(label);
+      pinnedVisible.forEach((action) => renderActionCard(actionsGrid, action));
+    }
+    if (otherVisible.length > 0) {
+      if (pinnedVisible.length > 0) {
+        const label = document.createElement('div');
+        label.className = 'actions-section-label muted';
+        label.textContent = 'All actions';
+        actionsGrid.appendChild(label);
+      }
+      otherVisible.forEach((action) => renderActionCard(actionsGrid, action));
+    }
   }
 
   setActionsMeta(filtered.length, visible.length, query);

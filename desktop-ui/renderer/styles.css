@@ -535,6 +535,29 @@ button:disabled {
   min-height: 44px;
   padding: 4px;
 }
+.actions-section-label {
+  grid-column: 1 / -1;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-strong);
+  padding: 2px 2px 2px 0;
+}
+.actions-section-label.muted {
+  color: var(--muted);
+  font-weight: 600;
+}
+.actions-section-label .pin-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #fde68a, #f59e0b);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
+}
 
 .action-card.destructive {
   border-color: rgba(239, 68, 68, 0.32);
