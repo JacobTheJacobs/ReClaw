@@ -2,8 +2,6 @@
 
 ![Windows](https://img.shields.io/badge/Windows-x64-blue?style=for-the-badge)
 ![macOS](https://img.shields.io/badge/macOS-arm64-black?style=for-the-badge)
-![Stars](https://img.shields.io/github/stars/JacobTheJacobs/ReClaw?style=for-the-badge)
-![Issues](https://img.shields.io/github/issues/JacobTheJacobs/ReClaw?style=for-the-badge)
 
 <img width="559" height="677" alt="Image" src="https://github.com/user-attachments/assets/665a12c4-bad7-4b31-bd88-cb2ad2d6dcac" />
 <img width="552" height="670" alt="Image" src="https://github.com/user-attachments/assets/03846f2f-769c-469d-8fe6-b751c5cd0d19" />
