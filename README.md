@@ -1,5 +1,8 @@
 # ReClaw
 
+<img width="2740" height="1568" alt="Image" src="https://github.com/user-attachments/assets/6898ee02-5a5c-4e5c-bd15-cb4a6543ddbc" />
+
+
 [![Windows](https://img.shields.io/badge/Windows-x64-blue?style=for-the-badge)](https://github.com/JacobTheJacobs/ReClaw/releases)
 [![macOS](https://img.shields.io/badge/macOS-arm64-black?style=for-the-badge)](https://github.com/JacobTheJacobs/ReClaw/releases)
 
