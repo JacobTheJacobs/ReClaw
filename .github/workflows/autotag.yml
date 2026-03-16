@@ -23,7 +23,7 @@ jobs:
         shell: bash
         run: |
           : "${GITHUB_OUTPUT:?GITHUB_OUTPUT not set}"
-          echo "version=$(node -p \"require('./package.json').version\")" >> "$GITHUB_OUTPUT"
+          echo "version=$(node -p 'require(\"./package.json\").version')" >> "$GITHUB_OUTPUT"
       - name: Create tag if missing
         shell: bash
         run: |
