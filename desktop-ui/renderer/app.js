@@ -59,6 +59,8 @@ const ACTION_GATEWAY_INSTALL_START = ['oc', 'gateway', 'install-start'].join('-'
 const ACTION_GATEWAY_STATUS = ['oc', 'gateway', 'status'].join('-');
 const ACTION_GATEWAY_KILL = ['oc', 'gateway', 'kill'].join('-');
 const ACTION_GATEWAY_DISABLE_AUTOSTART = ['oc', 'gateway', 'disable-autostart'].join('-');
+const ACTION_RESET = 'reset';
+const ACTION_NUKE = 'nuke';
 
 const PINNED_ACTIONS = [
   'oc-gateway-install-start',
@@ -192,6 +194,10 @@ const guidanceState = {
   lastGateway: null,
 };
 let gatewayOfflineCount = 0;
+
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 function setGuidanceHint(text, mode = 'info') {
   if (!guidanceHint) return;
@@ -594,6 +600,20 @@ function setGatewayStatus(status) {
     setRecommendedAction(ACTION_GATEWAY_INSTALL_START, 'Install and start gateway service');
   }
   guidanceState.lastGateway = 'offline';
+}
+
+async function refreshGatewayStatusWithRetry(attempts = 3, delayMs = 4000) {
+  let last = null;
+  for (let i = 0; i < attempts; i += 1) {
+    last = await refreshGatewayStatus(true);
+    if (last?.running) {
+      return last;
+    }
+    if (i < attempts - 1) {
+      await delay(delayMs);
+    }
+  }
+  return last;
 }
 
 async function refreshGatewayStatus(force = false) {
@@ -1151,6 +1171,11 @@ async function runAction(action) {
       gatewayOfflineCount = 0;
       setGuidanceHint('Gateway autostart removed. Run Kill → Install + Start to bring it up clean.', 'warn');
       setRecommendedAction(ACTION_GATEWAY_INSTALL_START, 'Install and start gateway service');
+    }
+    if (action.id === ACTION_RESET || action.id === ACTION_NUKE) {
+      setGuidanceHint('Reset complete. Reinstall and start the gateway: “OC Gateway Install + Start” (or “Run (No Autostart)” on Windows).', 'warn');
+      setRecommendedAction(ACTION_GATEWAY_INSTALL_START, 'Install and start gateway service');
+      await refreshGatewayStatusWithRetry(3, 5000);
     }
     if (
       action.id === ACTION_GATEWAY_START ||

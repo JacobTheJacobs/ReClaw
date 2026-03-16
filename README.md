@@ -162,8 +162,8 @@ npm run test:integration:docker    # needs Docker
 - [x] Hide PowerShell flashes on Windows actions
 - [x] Gateway helper: stop using `cmd /c` (reduces stray console popups)
 - [x] Windows gateway loop breaker: Disable Autostart + Kill stuck processes actions
-- [ ] Improve gateway status retry after reset/nuke
-- [ ] Clearer error copy for missing global tools
+- [x] Improve gateway status retry after reset/nuke
+- [x] Clearer error copy for missing global tools
 
 ### v1.1 — Polish
 - [ ] Auto-update check on launch
