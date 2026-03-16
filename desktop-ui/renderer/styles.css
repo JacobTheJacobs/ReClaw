@@ -470,6 +470,7 @@ button:disabled {
   background: var(--bg-accent);
   min-height: 56px;
   overflow: visible;
+  position: relative;
 }
 
 .action-card:hover:not(:disabled) {
@@ -485,6 +486,18 @@ button:disabled {
 
 .action-card .emoji {
   font-size: 11px;
+}
+
+.action-card .pill-pinned {
+  font-size: 8px;
+  font-weight: 800;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  color: #111;
+  border-radius: 999px;
+  padding: 2px 8px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.16);
 }
 
 .action-card .title {
@@ -675,6 +688,10 @@ button:disabled {
   box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.5), 0 10px 30px rgba(59, 130, 246, 0.25);
   border-color: rgba(96, 165, 250, 0.7);
   animation: pulse-accent 1.6s ease-in-out infinite;
+}
+.action-card.pinned:not(.recommended) {
+  border-color: rgba(251, 191, 36, 0.8);
+  box-shadow: 0 6px 20px rgba(251, 191, 36, 0.18);
 }
 
 @keyframes pulse-accent {

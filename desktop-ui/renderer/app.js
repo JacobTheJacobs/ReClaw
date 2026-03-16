@@ -60,6 +60,15 @@ const ACTION_GATEWAY_STATUS = ['oc', 'gateway', 'status'].join('-');
 const ACTION_GATEWAY_KILL = ['oc', 'gateway', 'kill'].join('-');
 const ACTION_GATEWAY_DISABLE_AUTOSTART = ['oc', 'gateway', 'disable-autostart'].join('-');
 
+const PINNED_ACTIONS = [
+  'oc-gateway-install-start',
+  'restore-archive',
+  'backup',
+  'oc-gateway-kill',
+  'dashboard-open',
+];
+const PINNED_LOOKUP = new Map(PINNED_ACTIONS.map((id, index) => [id, index]));
+
 const isWindowsPlatform =
   typeof navigator !== 'undefined' && /win/i.test(`${navigator.platform || ''} ${navigator.userAgent || ''}`);
 if (isWindowsPlatform) {
@@ -146,6 +155,12 @@ function sortActions(actions) {
   const lruIndex = new Map(actionLru.map((id, index) => [id, index]));
 
   return [...actions].sort((left, right) => {
+    const leftPinned = PINNED_LOOKUP.has(left.id) ? PINNED_LOOKUP.get(left.id) : Number.MAX_SAFE_INTEGER;
+    const rightPinned = PINNED_LOOKUP.has(right.id) ? PINNED_LOOKUP.get(right.id) : Number.MAX_SAFE_INTEGER;
+    if (leftPinned !== rightPinned) {
+      return leftPinned - rightPinned;
+    }
+
     const leftPriority = lruIndex.has(left.id)
       ? lruIndex.get(left.id)
       : Number.MAX_SAFE_INTEGER;
@@ -1155,13 +1170,15 @@ async function runAction(action) {
 }
 
 function renderActionCard(container, action) {
+  const isPinned = PINNED_LOOKUP.has(action.id);
   const button = document.createElement('button');
   button.type = 'button';
   button.dataset.actionId = action.id;
-  button.className = `action-card${action.destructive ? ' destructive' : ''}`;
+  button.className = `action-card${action.destructive ? ' destructive' : ''}${isPinned ? ' pinned' : ''}`;
   button.innerHTML = `
     <span class="card-top">
       <span class="emoji">${action.emoji || '🧩'}</span>
+      ${isPinned ? '<span class="pill-pinned" aria-label="Most used">Most used</span>' : ''}
     </span>
     <span class="title">${action.label}</span>
     <span class="desc">${action.description}</span>
