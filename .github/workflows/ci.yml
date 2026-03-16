@@ -25,3 +25,13 @@ jobs:
 
       - name: Test
         run: npm test
+
+  ci-success:
+    name: CI Status
+    needs: test
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Check matrix results
+        if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}
+        run: exit 1
