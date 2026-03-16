@@ -22,7 +22,8 @@ jobs:
         id: version
         shell: bash
         run: |
-          node -e "const v=require('./package.json').version; require('fs').appendFileSync(process.env.GITHUB_OUTPUT, `version=${v}\n`)"
+          : "${GITHUB_OUTPUT:?GITHUB_OUTPUT not set}"
+          echo "version=$(node -p \"require('./package.json').version\")" >> "$GITHUB_OUTPUT"
       - name: Create tag if missing
         shell: bash
         run: |

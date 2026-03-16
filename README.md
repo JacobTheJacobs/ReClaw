@@ -18,9 +18,15 @@ OpenClaw backup and restore. Because things break.
 ## Quick Start
 
 Desktop (recommended): download from Releases and open it. It finds OpenClaw on its own.
-Windows status: 1.0.1 tested on Windows 10/11 x64 — minimal flashing (onboarding only). If you still see a stray console: “Disable Gateway Autostart” → “Kill Gateway Processes” → “OC Gateway Install + Start”, or use “OC Gateway Run (No Autostart)” to avoid the login task entirely. macOS: arm64 DMG/zip tested.
-Guidance: the footer hint bar tells you the next step (e.g., Gateway Start, Backup, Doctor Repair) and highlights the recommended button. ReClaw never auto-starts the gateway; start it with “OC Gateway Install + Start” (or “Run (No Autostart)” on Windows). If the gateway is offline or openclaw is missing, click “Install OpenClaw CLI” first.
+Windows status: 1.0.1 tested on Windows 10/11 x64 — minimal flashing (onboarding only). If you still see a stray console: run “Disable Gateway Autostart”, then “Kill Gateway Processes”, then “OC Gateway Install + Start”, or just use “OC Gateway Run (No Autostart)” to avoid the login task entirely. macOS: arm64 DMG/zip tested.
+Guidance: the footer hint bar tells you the next step (Gateway Start, Backup, Doctor Repair) and highlights the recommended button. ReClaw never auto-starts the gateway; start it with “OC Gateway Install + Start” (or “Run (No Autostart)” on Windows). If the gateway is offline or OpenClaw CLI is missing, click “Install OpenClaw CLI” first.
 Dashboard: start the gateway first, then use 🧭 Open Dashboard. This prevents flash-on-start windows.
+
+Debug cheatsheet (click these in the UI):
+- Gateway offline / ECONNREFUSED: “Install OpenClaw CLI” → “OC Gateway Install + Start”; if still offline, “Kill Gateway Processes” → “OC Gateway Run (No Autostart)” → “Refresh”.
+- Flashing console on Windows: “Disable Gateway Autostart” → “Kill Gateway Processes” → “OC Gateway Run (No Autostart)”. If you prefer the login task, follow with “OC Gateway Install + Start”.
+- Token missing in Control UI: click 🧭 Open Dashboard, copy the tokenized URL it prints, and paste the token into Control UI settings.
+- Still stuck: run “OC Gateway Status”, then open the latest log shown in the hint bar; share the log when asking for help.
 
 Source (CLI/dev):
 ```bash
