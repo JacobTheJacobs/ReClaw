@@ -1,0 +1,124 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:fluent="clr-namespace:Avalonia.Themes.Fluent;assembly=Avalonia.Themes.Fluent"
+             x:Class="ReClaw.Desktop.App">
+  <Application.Resources>
+    <SolidColorBrush x:Key="AppBackground" Color="#0E1110" />
+    <SolidColorBrush x:Key="HeaderBackground" Color="#151A17" />
+    <SolidColorBrush x:Key="CardBackground" Color="#151A17" />
+    <SolidColorBrush x:Key="CardBorder" Color="#232A24" />
+    <SolidColorBrush x:Key="Accent" Color="#2B3A32" />
+    <SolidColorBrush x:Key="AccentSoft" Color="#1F2723" />
+    <SolidColorBrush x:Key="TextMuted" Color="#9DA89B" />
+    <SolidColorBrush x:Key="Warning" Color="#C08A2D" />
+    <SolidColorBrush x:Key="Danger" Color="#C35353" />
+  </Application.Resources>
+  <Application.Styles>
+    <fluent:FluentTheme />
+    <Style Selector="Window">
+      <Setter Property="Background" Value="{DynamicResource AppBackground}" />
+      <Setter Property="FontFamily" Value="Aptos, Segoe UI" />
+      <Setter Property="FontSize" Value="14" />
+    </Style>
+    <Style Selector="TextBlock">
+      <Setter Property="Foreground" Value="#E7EEE6" />
+    </Style>
+    <Style Selector="TextBlock.Muted">
+      <Setter Property="Foreground" Value="{DynamicResource TextMuted}" />
+    </Style>
+    <Style Selector="TextBlock.SectionTitle">
+      <Setter Property="FontSize" Value="18" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="Border.Card">
+      <Setter Property="Background" Value="{DynamicResource CardBackground}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource CardBorder}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="Padding" Value="16" />
+    </Style>
+    <Style Selector="TextBox">
+      <Setter Property="Background" Value="#0F1411" />
+      <Setter Property="BorderBrush" Value="#2A322C" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Padding" Value="10,8" />
+      <Setter Property="Foreground" Value="#E7EEE6" />
+      <Setter Property="CaretBrush" Value="#E7EEE6" />
+    </Style>
+    <Style Selector="TextBox:focus">
+      <Setter Property="BorderBrush" Value="#2A322C" />
+    </Style>
+    <Style Selector="TextBox.Log">
+      <Setter Property="Background" Value="#0F1411" />
+      <Setter Property="Foreground" Value="#E7EEE6" />
+      <Setter Property="BorderBrush" Value="#1E2621" />
+      <Setter Property="CaretBrush" Value="#E7EEE6" />
+      <Setter Property="SelectionBrush" Value="#1E2621" />
+      <Setter Property="SelectionForegroundBrush" Value="#E7EEE6" />
+      <Setter Property="FontFamily" Value="Cascadia Mono, Consolas" />
+      <Setter Property="FontSize" Value="12" />
+    </Style>
+    <Style Selector="TextBox.Log:pointerover">
+      <Setter Property="Background" Value="#0F1411" />
+      <Setter Property="Foreground" Value="#E7EEE6" />
+      <Setter Property="BorderBrush" Value="#1E2621" />
+    </Style>
+    <Style Selector="TextBox.Log:read-only">
+      <Setter Property="Background" Value="#0F1411" />
+      <Setter Property="Foreground" Value="#E7EEE6" />
+      <Setter Property="BorderBrush" Value="#1E2621" />
+    </Style>
+    <Style Selector="TextBox.Log:focus">
+      <Setter Property="Background" Value="#0F1411" />
+      <Setter Property="Foreground" Value="#E7EEE6" />
+      <Setter Property="BorderBrush" Value="#1E2621" />
+    </Style>
+    <Style Selector="TextBox.Log:focus-within">
+      <Setter Property="Background" Value="#0F1411" />
+      <Setter Property="Foreground" Value="#E7EEE6" />
+      <Setter Property="BorderBrush" Value="#1E2621" />
+    </Style>
+    <Style Selector="TextBox.Log:pressed">
+      <Setter Property="Background" Value="#0F1411" />
+      <Setter Property="Foreground" Value="#E7EEE6" />
+      <Setter Property="BorderBrush" Value="#1E2621" />
+    </Style>
+    <Style Selector="TextBox.Log:disabled">
+      <Setter Property="Background" Value="#0F1411" />
+      <Setter Property="Foreground" Value="#E7EEE6" />
+      <Setter Property="BorderBrush" Value="#1E2621" />
+    </Style>
+    <Style Selector="ComboBox">
+      <Setter Property="Background" Value="#0F1411" />
+      <Setter Property="BorderBrush" Value="#2A322C" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Padding" Value="8,6" />
+      <Setter Property="Foreground" Value="#E7EEE6" />
+    </Style>
+    <Style Selector="Button">
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="Padding" Value="14,8" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="BorderBrush" Value="#2A322C" />
+      <Setter Property="Background" Value="#1C241F" />
+      <Setter Property="Foreground" Value="#E7EEE6" />
+    </Style>
+    <Style Selector="Button.Primary">
+      <Setter Property="Background" Value="{DynamicResource Accent}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Accent}" />
+      <Setter Property="Foreground" Value="#F3F7F2" />
+    </Style>
+    <Style Selector="Button.Ghost">
+      <Setter Property="Background" Value="{DynamicResource AccentSoft}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource AccentSoft}" />
+      <Setter Property="Foreground" Value="#D3DDD2" />
+    </Style>
+    <Style Selector="ProgressBar">
+      <Setter Property="Foreground" Value="{DynamicResource Accent}" />
+      <Setter Property="Background" Value="#1B221E" />
+      <Setter Property="Height" Value="6" />
+    </Style>
+  </Application.Styles>
+</Application>

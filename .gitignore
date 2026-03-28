@@ -1,0 +1,50 @@
+# Build
+bin/
+obj/
+dist/
+publish/
+*.user
+*.suo
+
+# IDE
+.vs/
+.vscode/
+.idea/
+*.swp
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Logs
+*.log
+
+# Local tools
+.dotnet/
+.dotnet-cli/
+
+# Secrets
+.env
+*.pfx
+credentials.json
+
+# Local agent state
+memory/
+.openclaw/
+.pi/
+.swarm/
+.qoder/
+.tmp-svg/
+.claude/settings.local.json
+
+# Local workspace (not part of ReClaw)
+ReClaw2.0/
+claw-backup/
+repo-analysis/
+build-diag.log
+gateway-*.log
+test-events.js
+test-model.txt
+check_env.js
+MEMORY.md
+HEARTBEAT.md

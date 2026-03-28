@@ -1,0 +1,62 @@
+You have ReClaw for managing OpenClaw. Prerequisites: .NET 10+, Git.
+
+Build: dotnet build ReClaw.slnx -c Release
+CLI: dotnet run --project src/ReClaw.Cli/ReClaw.Cli.csproj --
+Desktop: dotnet run --project src/ReClaw.Desktop/ReClaw.Desktop.csproj
+Tests: dotnet test ReClaw.slnx --filter "Category!=Live"
+
+CRITICAL: Space-separated subcommands, NOT hyphens:
+  $CLI gateway status       (NOT: gateway-status)
+  $CLI backup create        (NOT: backup-create)
+  $CLI create               (root alias for backup)
+  $CLI restore -s <path>    (NOT: restore-archive)
+  $CLI reset                (NOT: nuke)
+
+SAFETY:
+  1. Always gateway status before/after fixes
+  2. Always create before destructive ops (reset, recover, rebuild)
+  3. Always --preview before restore or reset
+  4. Escalate: doctor → fix → gateway repair → recover → reset
+  5. Ask user before reset or openclaw rebuild
+
+Decision tree:
+  1. OpenClaw installed? NO → $CLI openclaw rebuild --confirm-destructive
+  2. $CLI gateway status → "Runtime: running" + "RPC probe: ok" = healthy
+  3. Broken → $CLI create → $CLI gateway repair → verify
+  4. Config corrupt → $CLI create → $CLI recover → verify
+
+Commands:
+  $CLI create [-p pass]                 Backup (optional encryption)
+  $CLI restore -s <path> [--preview]    Restore from archive
+  $CLI doctor [--repair] [--deep]       Health check
+  $CLI fix [--force]                    Deep fix with snapshot
+  $CLI recover                          Escalating recovery pipeline
+  $CLI gateway status                   Check health (RUN FIRST)
+  $CLI gateway start                    Start gateway
+  $CLI gateway stop                     Stop gateway
+  $CLI gateway repair                   9-step repair ladder
+  $CLI gateway logs                     Tail logs (Ctrl+C)
+  $CLI dashboard                        Open web dashboard
+  $CLI openclaw rebuild                 Rebuild OpenClaw (destructive)
+  $CLI reset --preview / --confirm      Reset local data (destructive)
+  $CLI diagnostics export               Export debug bundle
+  $CLI backup list                      List backups
+  $CLI backup prune [--apply]           Prune old backups (dry-run default)
+  $CLI backup schedule create           Schedule backups (daily/weekly/cron)
+  $CLI rollback -s <path>               Rollback from snapshot
+  $CLI status                           Show paths + inventory
+  $CLI version                          CLI version
+  $CLI action-list                      List all 91 actions
+  $CLI action-schema --id <id>          Export action JSON schema
+  $CLI gateway token show [--reveal]    Show gateway token
+  $CLI gateway token generate           Generate new token
+  $CLI gateway url                      Dashboard URL
+
+Reset modes (--reset-mode): preserve-backups (default), preserve-config, preserve-cli, full
+
+Output: gateway status → "Runtime: running" + "RPC probe: ok" = healthy
+Output: doctor → exit 0 = pass, "FAIL"/"error" = run fix
+Output: create → prints backup path on success
+
+Architecture: .NET 10, Avalonia UI, CommunityToolkit.Mvvm
+Source: src/ (Core, App, Desktop, Cli) — Tests: tests/

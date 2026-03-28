@@ -1,0 +1,1135 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        x:Class="ReClaw.Desktop.MainWindow"
+        Width="620" Height="680"
+        MinWidth="480" MinHeight="480"
+        Title="ReClaw"
+        Icon="avares://ReClaw.Desktop/Assets/reclaw.ico"
+        WindowStartupLocation="CenterScreen"
+        RequestedThemeVariant="Dark"
+        Background="#0c0e14"
+        Foreground="#e4e4e7"
+        FontFamily="Segoe UI, Inter, -apple-system, sans-serif">
+
+  <Window.Styles>
+    <!-- ═══ Surfaces ═══ -->
+    <Style Selector="Border.Card">
+      <Setter Property="Background" Value="#13151c" />
+      <Setter Property="BorderBrush" Value="#1e2028" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="Padding" Value="16" />
+    </Style>
+    <Style Selector="Border.CardInner">
+      <Setter Property="Background" Value="#0f1118" />
+      <Setter Property="BorderBrush" Value="#1e2028" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Padding" Value="10" />
+    </Style>
+    <Style Selector="Border.StatusPill">
+      <Setter Property="CornerRadius" Value="999" />
+      <Setter Property="Padding" Value="10,4" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+
+    <!-- ═══ Typography ═══ -->
+    <Style Selector="TextBlock">
+      <Setter Property="Foreground" Value="#e4e4e7" />
+      <Setter Property="FontSize" Value="13" />
+    </Style>
+    <Style Selector="TextBlock.Dim">
+      <Setter Property="Foreground" Value="#52525b" />
+      <Setter Property="FontSize" Value="11" />
+    </Style>
+    <Style Selector="TextBlock.Sub">
+      <Setter Property="Foreground" Value="#71717a" />
+      <Setter Property="FontSize" Value="11" />
+    </Style>
+    <Style Selector="TextBlock.Heading">
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="#a1a1aa" />
+    </Style>
+
+    <!-- ═══ Inputs ═══ -->
+    <Style Selector="TextBox">
+      <Setter Property="Background" Value="#0f1118" />
+      <Setter Property="Foreground" Value="#e4e4e7" />
+      <Setter Property="BorderBrush" Value="#1e2028" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CaretBrush" Value="#e4e4e7" />
+      <Setter Property="SelectionBrush" Value="#2563eb40" />
+      <Setter Property="SelectionForegroundBrush" Value="#e4e4e7" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="Padding" Value="10,8" />
+      <Setter Property="CornerRadius" Value="8" />
+    </Style>
+    <Style Selector="TextBox.Log">
+      <Setter Property="Background" Value="#08090d" />
+      <Setter Property="Foreground" Value="#a1a1aa" />
+      <Setter Property="BorderBrush" Value="#1a1c24" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CaretBrush" Value="#a1a1aa" />
+      <Setter Property="FontFamily" Value="JetBrains Mono, Cascadia Code, Consolas, monospace" />
+      <Setter Property="FontSize" Value="10" />
+      <Setter Property="CornerRadius" Value="8" />
+    </Style>
+    <Style Selector="ComboBox">
+      <Setter Property="Background" Value="#0f1118" />
+      <Setter Property="Foreground" Value="#e4e4e7" />
+      <Setter Property="BorderBrush" Value="#1e2028" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="CornerRadius" Value="8" />
+    </Style>
+    <Style Selector="CheckBox">
+      <Setter Property="Foreground" Value="#a1a1aa" />
+      <Setter Property="FontSize" Value="11" />
+    </Style>
+
+    <!-- ═══ Buttons ═══ -->
+    <Style Selector="Button">
+      <Setter Property="Background" Value="#13151c" />
+      <Setter Property="Foreground" Value="#e4e4e7" />
+      <Setter Property="BorderBrush" Value="#1e2028" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Padding" Value="12,6" />
+      <Setter Property="FontSize" Value="12" />
+    </Style>
+    <Style Selector="Button:pointerover">
+      <Setter Property="Background" Value="#1a1d26" />
+      <Setter Property="BorderBrush" Value="#2a2d38" />
+    </Style>
+    <Style Selector="Button.Primary">
+      <Setter Property="Background" Value="#2563eb" />
+      <Setter Property="BorderBrush" Value="#3b82f6" />
+      <Setter Property="Foreground" Value="#ffffff" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="Button.Primary:pointerover">
+      <Setter Property="Background" Value="#3b82f6" />
+      <Setter Property="BorderBrush" Value="#60a5fa" />
+    </Style>
+    <Style Selector="Button.Ghost">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="Foreground" Value="#71717a" />
+    </Style>
+    <Style Selector="Button.Ghost:pointerover">
+      <Setter Property="Background" Value="#13151c" />
+      <Setter Property="BorderBrush" Value="#1e2028" />
+      <Setter Property="Foreground" Value="#e4e4e7" />
+    </Style>
+    <Style Selector="Button.Danger">
+      <Setter Property="Background" Value="#1c1012" />
+      <Setter Property="BorderBrush" Value="#7f1d1d" />
+      <Setter Property="Foreground" Value="#fca5a5" />
+    </Style>
+    <Style Selector="Button.Danger:pointerover">
+      <Setter Property="Background" Value="#2a1518" />
+      <Setter Property="BorderBrush" Value="#991b1b" />
+    </Style>
+
+    <!-- ═══ Quick-action hero buttons ═══ -->
+    <Style Selector="Button.QuickAction">
+      <Setter Property="Background" Value="#13151c" />
+      <Setter Property="BorderBrush" Value="#1e2028" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Padding" Value="6,4" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="VerticalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="Height" Value="38" />
+    </Style>
+    <Style Selector="Button.QuickAction:pointerover">
+      <Setter Property="Background" Value="#1a1d26" />
+      <Setter Property="BorderBrush" Value="#2563eb" />
+    </Style>
+
+    <!-- ═══ Category tab buttons ═══ -->
+    <Style Selector="Button.Tab">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0,0,0,2" />
+      <Setter Property="Foreground" Value="#52525b" />
+      <Setter Property="CornerRadius" Value="0" />
+      <Setter Property="Padding" Value="12,6" />
+      <Setter Property="FontSize" Value="12" />
+    </Style>
+    <Style Selector="Button.Tab:pointerover">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Foreground" Value="#a1a1aa" />
+      <Setter Property="BorderBrush" Value="#27272a" />
+    </Style>
+    <Style Selector="Button.TabActive">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="#2563eb" />
+      <Setter Property="BorderThickness" Value="0,0,0,2" />
+      <Setter Property="Foreground" Value="#e4e4e7" />
+      <Setter Property="CornerRadius" Value="0" />
+      <Setter Property="Padding" Value="12,6" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="Button.TabActive:pointerover">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="#3b82f6" />
+    </Style>
+
+    <!-- ═══ Action cards (compact) ═══ -->
+    <Style Selector="Button.ActionCard">
+      <Setter Property="Background" Value="#0f1118" />
+      <Setter Property="BorderBrush" Value="#1a1c24" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="6" />
+      <Setter Property="Padding" Value="8,5" />
+      <Setter Property="HorizontalContentAlignment" Value="Left" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="MinHeight" Value="36" />
+    </Style>
+    <Style Selector="Button.ActionCard:pointerover">
+      <Setter Property="Background" Value="#16181f" />
+      <Setter Property="BorderBrush" Value="#2563eb80" />
+    </Style>
+    <Style Selector="Button.ActionCard[Tag='danger']">
+      <Setter Property="BorderBrush" Value="#2a1518" />
+    </Style>
+    <Style Selector="Button.ActionCard[Tag='danger']:pointerover">
+      <Setter Property="BorderBrush" Value="#7f1d1d" />
+    </Style>
+
+    <!-- ═══ Expander ═══ -->
+    <Style Selector="Expander">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="Foreground" Value="#a1a1aa" />
+    </Style>
+  </Window.Styles>
+
+  <Grid Margin="0">
+    <!-- ══════════════════════════════════════ -->
+    <!--           OPERATOR MODE               -->
+    <!-- ══════════════════════════════════════ -->
+    <Grid RowDefinitions="Auto,*,Auto" IsVisible="{Binding IsOperatorMode}">
+
+      <!-- ── Header bar ── -->
+      <Border Grid.Row="0" Background="#0c0e14" Padding="14,8,14,6"
+              BorderBrush="#1a1c24" BorderThickness="0,0,0,1">
+        <Grid ColumnDefinitions="Auto,*,Auto">
+          <!-- Logo + name -->
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Border Width="26" Height="26" Background="#2563eb" CornerRadius="6">
+              <TextBlock Text="C" Foreground="#ffffff" FontWeight="Bold" FontSize="12"
+                         HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+            <StackPanel Spacing="0" VerticalAlignment="Center">
+              <TextBlock Text="ReClaw" FontSize="13" FontWeight="Bold" />
+              <TextBlock Text="OpenClaw Manager" Classes="Dim" FontSize="8" Margin="0,-1,0,0" />
+            </StackPanel>
+          </StackPanel>
+
+          <!-- Status + progress (center) -->
+          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8"
+                      HorizontalAlignment="Center" VerticalAlignment="Center">
+            <TextBlock Text="{Binding StatusText}" Classes="Sub" />
+            <ProgressBar IsIndeterminate="True" Width="80" Height="3"
+                         IsVisible="{Binding IsBusy}" VerticalAlignment="Center" />
+          </StackPanel>
+
+          <!-- Gateway status -->
+          <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+            <Border Classes="StatusPill" IsVisible="{Binding IsGatewayHealthy}"
+                    Background="#052e16" BorderBrush="#166534">
+              <StackPanel Orientation="Horizontal" Spacing="5">
+                <Ellipse Width="6" Height="6" Fill="#4ade80" VerticalAlignment="Center" />
+                <TextBlock Text="Gateway" Foreground="#86efac" FontSize="11" />
+              </StackPanel>
+            </Border>
+            <Border Classes="StatusPill" IsVisible="{Binding IsGatewayUnhealthy}"
+                    Background="#1c1012" BorderBrush="#7f1d1d">
+              <StackPanel Orientation="Horizontal" Spacing="5">
+                <Ellipse Width="6" Height="6" Fill="#f87171" VerticalAlignment="Center" />
+                <TextBlock Text="Offline" Foreground="#fca5a5" FontSize="11" />
+              </StackPanel>
+            </Border>
+            <Button Content="Refresh" Classes="Ghost" FontSize="10"
+                    Command="{Binding RunGatewayStatusCommand}" Padding="6,3" />
+          </StackPanel>
+        </Grid>
+      </Border>
+
+      <!-- ── Main content ── -->
+      <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Spacing="0" MaxWidth="600" HorizontalAlignment="Center" Margin="14,10,14,10">
+
+          <!-- ── Quick Actions row ── -->
+          <UniformGrid Columns="4" Margin="0,0,0,6">
+            <Button Classes="QuickAction" Margin="0,0,3,0"
+                    Command="{Binding RunBackupCreateCommand}"
+                    IsEnabled="{Binding IsIdle}">
+              <TextBlock Text="Backup" FontWeight="SemiBold" FontSize="11" HorizontalAlignment="Center" />
+            </Button>
+            <Button Classes="QuickAction" Margin="3,0,3,0"
+                    Command="{Binding RunDoctorCommand}"
+                    IsEnabled="{Binding IsIdle}">
+              <TextBlock Text="Doctor" FontWeight="SemiBold" FontSize="11" HorizontalAlignment="Center" />
+            </Button>
+            <Button Classes="QuickAction" Margin="3,0,3,0"
+                    Command="{Binding RunGatewayRepairCommand}"
+                    IsEnabled="{Binding IsIdle}">
+              <TextBlock Text="Repair" FontWeight="SemiBold" FontSize="11" HorizontalAlignment="Center" />
+            </Button>
+            <Button Classes="QuickAction" Margin="3,0,0,0"
+                    Command="{Binding RunRecoverCommand}"
+                    IsEnabled="{Binding IsIdle}">
+              <TextBlock Text="Recover" FontWeight="SemiBold" FontSize="11" HorizontalAlignment="Center" />
+            </Button>
+          </UniformGrid>
+
+          <!-- ── Gateway detail strip (only when offline) ── -->
+          <Border Classes="CardInner" IsVisible="{Binding IsGatewayUnhealthy}" Margin="0,0,0,14" Padding="14,10">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Text="{Binding GatewayStatusDetailText}" Classes="Sub" TextWrapping="Wrap"
+                         VerticalAlignment="Center" FontSize="12" />
+              <Button Grid.Column="1" Content="Start Gateway" Classes="Primary" Padding="16,8"
+                      Command="{Binding RunGatewayStartCommand}" IsEnabled="{Binding IsIdle}"
+                      VerticalAlignment="Center" />
+            </Grid>
+          </Border>
+
+          <!-- ── Category tabs + search ── -->
+          <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,4">
+            <StackPanel Orientation="Horizontal" Spacing="0">
+              <Button Classes="TabActive" Content="All" IsVisible="{Binding IsCategoryAll}"
+                      Command="{Binding SelectCategoryCommand}" CommandParameter="all" />
+              <Button Classes="Tab" Content="All" IsVisible="{Binding !IsCategoryAll}"
+                      Command="{Binding SelectCategoryCommand}" CommandParameter="all" />
+              <Button Classes="TabActive" Content="Gateway" IsVisible="{Binding IsCategoryGateway}"
+                      Command="{Binding SelectCategoryCommand}" CommandParameter="gateway" />
+              <Button Classes="Tab" Content="Gateway" IsVisible="{Binding !IsCategoryGateway}"
+                      Command="{Binding SelectCategoryCommand}" CommandParameter="gateway" />
+              <Button Classes="TabActive" Content="Backup" IsVisible="{Binding IsCategoryBackup}"
+                      Command="{Binding SelectCategoryCommand}" CommandParameter="backup" />
+              <Button Classes="Tab" Content="Backup" IsVisible="{Binding !IsCategoryBackup}"
+                      Command="{Binding SelectCategoryCommand}" CommandParameter="backup" />
+              <Button Classes="TabActive" Content="Tools" IsVisible="{Binding IsCategoryTools}"
+                      Command="{Binding SelectCategoryCommand}" CommandParameter="tools" />
+              <Button Classes="Tab" Content="Tools" IsVisible="{Binding !IsCategoryTools}"
+                      Command="{Binding SelectCategoryCommand}" CommandParameter="tools" />
+              <Button Classes="TabActive" Content="Danger" IsVisible="{Binding IsCategoryDanger}"
+                      Command="{Binding SelectCategoryCommand}" CommandParameter="danger" />
+              <Button Classes="Tab" Content="Danger" IsVisible="{Binding !IsCategoryDanger}"
+                      Command="{Binding SelectCategoryCommand}" CommandParameter="danger" />
+            </StackPanel>
+            <Grid Grid.Column="1" Width="200">
+              <TextBox x:Name="ActionSearchInput"
+                       Text="{Binding ActionSearchText, Mode=TwoWay}"
+                       TextChanged="OnActionSearchTextChanged"
+                       Watermark="Search..."
+                       Padding="8,6" FontSize="11" />
+            </Grid>
+          </Grid>
+
+          <!-- ── Actions meta ── -->
+          <Grid ColumnDefinitions="*,Auto" Margin="2,4,0,8">
+            <TextBlock Text="{Binding ActionsMetaText}" Classes="Dim" FontSize="11" VerticalAlignment="Center" />
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
+              <Button Content="Action Inputs" Classes="Ghost" FontSize="10" Padding="10,4"
+                      Command="{Binding OpenActionInputsCommand}" />
+              <Button Content="Last Result" Classes="Ghost" FontSize="10" Padding="10,4"
+                      Command="{Binding OpenLastResultCommand}"
+                      IsEnabled="{Binding ResultSummary, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+            </StackPanel>
+          </Grid>
+
+          <!-- ── Action list (compact rows) ── -->
+          <Border Classes="Card" Padding="4" MinHeight="80">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                          MaxHeight="240">
+              <StackPanel>
+                <TextBlock Text="No actions found." Classes="Dim" FontSize="11"
+                           HorizontalAlignment="Center" Margin="0,16"
+                           IsVisible="{Binding !FilteredActions.Count}" />
+                <ItemsControl x:Name="ActionsGrid" ItemsSource="{Binding FilteredActions}">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <StackPanel Spacing="3" />
+                    </ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <Button Classes="ActionCard" Tag="{Binding Group}"
+                              Command="{Binding DataContext.RunActionCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                              CommandParameter="{Binding}"
+                              IsEnabled="{Binding DataContext.IsIdle, RelativeSource={RelativeSource AncestorType=Window}}">
+                        <Grid ColumnDefinitions="22,*,Auto">
+                          <TextBlock Text="{Binding Emoji}" FontSize="12" VerticalAlignment="Center"
+                                     HorizontalAlignment="Center" />
+                          <StackPanel Grid.Column="1" Spacing="0" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding Label}" FontSize="11" FontWeight="SemiBold" />
+                            <TextBlock Text="{Binding Description}" Classes="Dim" FontSize="9"
+                                       TextTrimming="CharacterEllipsis" MaxWidth="340" />
+                          </StackPanel>
+                          <TextBlock Grid.Column="2" Text="{Binding Group}" Classes="Dim" FontSize="8"
+                                     VerticalAlignment="Center" Margin="6,0,0,0" />
+                        </Grid>
+                      </Button>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+            </ScrollViewer>
+          </Border>
+
+        </StackPanel>
+      </ScrollViewer>
+
+      <!-- ── Bottom: Logs panel ── -->
+      <Border Grid.Row="2" Background="#0c0e14" BorderBrush="#1a1c24" BorderThickness="0,1,0,0">
+        <Grid RowDefinitions="Auto,*" Margin="14,0">
+          <!-- Logs toolbar -->
+          <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="0,8,0,4">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <TextBlock Text="Logs" FontWeight="SemiBold" FontSize="11" VerticalAlignment="Center" />
+              <TextBlock Text="{Binding LogLineCount}" Classes="Dim" FontSize="10" VerticalAlignment="Center" />
+            </StackPanel>
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
+              <Button Content="{Binding LogsToggleText}" Classes="Ghost" FontSize="10" Padding="8,3"
+                      Command="{Binding ToggleLogsCommand}" />
+              <Button Content="Copy" Classes="Ghost" FontSize="10" Padding="8,3"
+                      Command="{Binding CopyLogsCommand}" />
+              <Button Content="Clear" Classes="Ghost" FontSize="10" Padding="8,3"
+                      Command="{Binding ClearLogsCommand}" />
+              <Button Content="Stop" Classes="Danger" FontSize="10" Padding="10,3"
+                      Command="{Binding StopActionCommand}" IsEnabled="{Binding IsBusy}" />
+            </StackPanel>
+          </Grid>
+          <!-- Logs content -->
+          <TextBox x:Name="LogsOutput"
+                   Grid.Row="1"
+                   Classes="Log"
+                   Text="{Binding Logs}"
+                   AcceptsReturn="True"
+                   IsReadOnly="True"
+                   IsVisible="{Binding LogsExpanded}"
+                   Height="140"
+                   HorizontalAlignment="Stretch"
+                   ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                   ScrollViewer.VerticalScrollBarVisibility="Auto"
+                   TextWrapping="NoWrap"
+                   Padding="10,8"
+                   Margin="0,0,0,8" />
+        </Grid>
+      </Border>
+
+      <!-- ── Action Inputs popup ── -->
+      <Border Background="#0c0e14dd" IsVisible="{Binding ActionInputsExpanded}" Grid.RowSpan="3">
+        <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+          <Border Classes="Card" Padding="24" Width="540" MaxHeight="600">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+              <StackPanel Spacing="14">
+                <!-- Header -->
+                <Grid ColumnDefinitions="*,Auto">
+                  <StackPanel Spacing="2">
+                    <TextBlock Text="Action Inputs" FontWeight="SemiBold" FontSize="15" />
+                    <StackPanel Orientation="Horizontal" Spacing="4"
+                                IsVisible="{Binding ActiveActionLabel, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                      <TextBlock Text="For:" Classes="Sub" FontSize="11" />
+                      <TextBlock Text="{Binding ActiveActionLabel}" FontSize="11" Foreground="#60a5fa" FontWeight="SemiBold" />
+                    </StackPanel>
+                  </StackPanel>
+                  <Button Grid.Column="1" Content="Close" Classes="Ghost" Padding="10,5"
+                          Command="{Binding CloseActionInputsCommand}" />
+                </Grid>
+
+                <!-- Backup/Restore paths section -->
+                <Border Classes="CardInner" Padding="12">
+                  <StackPanel Spacing="8">
+                    <TextBlock Text="Paths" Classes="Heading" />
+                    <StackPanel Spacing="6">
+                      <StackPanel Spacing="2">
+                        <TextBlock Text="Archive Path" Classes="Dim" FontSize="10" />
+                        <Grid ColumnDefinitions="*,Auto,Auto">
+                          <TextBox Watermark="Path to backup archive (.zip)" Text="{Binding ArchivePath}" />
+                          <Button Grid.Column="1" Content="..." Classes="Ghost" Padding="8,4" Margin="4,0,0,0"
+                                  ToolTip.Tip="Browse for archive"
+                                  Command="{Binding BrowseArchivePathCommand}" />
+                          <Button Grid.Column="2" Content="Open" Classes="Ghost" Padding="6,4" Margin="2,0,0,0"
+                                  FontSize="10" ToolTip.Tip="Reveal in explorer"
+                                  Command="{Binding RevealArchivePathCommand}" />
+                        </Grid>
+                      </StackPanel>
+                      <StackPanel Spacing="2">
+                        <TextBlock Text="Destination Path" Classes="Dim" FontSize="10" />
+                        <Grid ColumnDefinitions="*,Auto,Auto">
+                          <TextBox Watermark="OpenClaw home directory" Text="{Binding DestinationPath}" />
+                          <Button Grid.Column="1" Content="..." Classes="Ghost" Padding="8,4" Margin="4,0,0,0"
+                                  ToolTip.Tip="Browse for folder"
+                                  Command="{Binding BrowseDestinationPathCommand}" />
+                          <Button Grid.Column="2" Content="Open" Classes="Ghost" Padding="6,4" Margin="2,0,0,0"
+                                  FontSize="10" ToolTip.Tip="Reveal in explorer"
+                                  Command="{Binding RevealDestinationPathCommand}" />
+                        </Grid>
+                      </StackPanel>
+                    </StackPanel>
+                  </StackPanel>
+                </Border>
+
+                <!-- Scope + Password section -->
+                <Border Classes="CardInner" Padding="12">
+                  <StackPanel Spacing="8">
+                    <TextBlock Text="Options" Classes="Heading" />
+                    <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto">
+                      <StackPanel Spacing="2" Margin="0,0,4,0">
+                        <TextBlock Text="Scope" Classes="Dim" FontSize="10" />
+                        <TextBox Watermark="config" Text="{Binding Scope}" />
+                      </StackPanel>
+                      <StackPanel Grid.Column="1" Spacing="2" Margin="4,0,0,0">
+                        <TextBlock Text="Password (optional)" Classes="Dim" FontSize="10" />
+                        <TextBox Watermark="For encrypted archives" Text="{Binding Password}"
+                                 PasswordChar="*" RevealPassword="False" />
+                      </StackPanel>
+                    </Grid>
+                    <StackPanel Orientation="Horizontal" Spacing="16" Margin="0,4,0,0">
+                      <CheckBox Content="Preview" IsChecked="{Binding Preview}" />
+                      <CheckBox Content="Safe reset" IsChecked="{Binding SafeReset}" />
+                      <CheckBox Content="Confirm reset" IsChecked="{Binding ConfirmReset}" />
+                    </StackPanel>
+                  </StackPanel>
+                </Border>
+
+                <!-- GitHub backup section (backup only) -->
+                <Border Classes="CardInner" Padding="12" IsVisible="{Binding IsPendingBackupAction}">
+                  <StackPanel Spacing="8">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <CheckBox Content="Upload to GitHub" IsChecked="{Binding BackupToGithub}" />
+                    </StackPanel>
+                    <StackPanel Spacing="6" IsVisible="{Binding BackupToGithub}">
+                      <StackPanel Spacing="2">
+                        <TextBlock Text="GitHub Token" Classes="Dim" FontSize="10" />
+                        <TextBox Watermark="ghp_xxxxxxxxxxxx" Text="{Binding GithubToken}"
+                                 PasswordChar="*" RevealPassword="False" />
+                      </StackPanel>
+                      <StackPanel Spacing="2">
+                        <TextBlock Text="Repository (owner/repo)" Classes="Dim" FontSize="10" />
+                        <TextBox Watermark="myuser/openclaw-backups" Text="{Binding GithubRepo}" />
+                      </StackPanel>
+                    </StackPanel>
+                  </StackPanel>
+                </Border>
+
+                <!-- Scheduling section (backup only) -->
+                <Border Classes="CardInner" Padding="12" IsVisible="{Binding IsPendingBackupAction}">
+                  <StackPanel Spacing="8">
+                    <TextBlock Text="Auto Schedule" Classes="Heading" />
+                    <Grid ColumnDefinitions="*,*" RowDefinitions="Auto">
+                      <StackPanel Spacing="2" Margin="0,0,4,0">
+                        <TextBlock Text="Frequency" Classes="Dim" FontSize="10" />
+                        <ComboBox ItemsSource="{Binding ScheduleKinds}" SelectedItem="{Binding ScheduleKind}"
+                                  HorizontalAlignment="Stretch" />
+                      </StackPanel>
+                      <StackPanel Grid.Column="1" Spacing="2" Margin="4,0,0,0">
+                        <TextBlock Text="Time" Classes="Dim" FontSize="10" />
+                        <TextBox Watermark="02:00" Text="{Binding ScheduleAtTime}" />
+                      </StackPanel>
+                    </Grid>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <Button Content="Apply Schedule" Classes="Ghost" Padding="10,4" FontSize="11"
+                              Command="{Binding RunScheduleCreateCommand}" IsEnabled="{Binding IsIdle}" />
+                      <Button Content="List Schedules" Classes="Ghost" Padding="10,4" FontSize="11"
+                              Command="{Binding RunScheduleListCommand}" IsEnabled="{Binding IsIdle}" />
+                    </StackPanel>
+                  </StackPanel>
+                </Border>
+
+                <!-- Current state summary -->
+                <Border Classes="CardInner" Padding="10" Background="#0a0c12">
+                  <StackPanel Spacing="4">
+                    <Grid ColumnDefinitions="Auto,*">
+                      <TextBlock Text="Backup saved to:" Classes="Dim" FontSize="10" Width="100" />
+                      <TextBlock Grid.Column="1" Text="{Binding BackupPathHint}" Classes="Sub" FontSize="10"
+                                 TextTrimming="CharacterEllipsis" />
+                    </Grid>
+                    <Grid ColumnDefinitions="Auto,*">
+                      <TextBlock Text="Restore source:" Classes="Dim" FontSize="10" Width="100" />
+                      <TextBlock Grid.Column="1" Text="{Binding RestorePathHint}" Classes="Sub" FontSize="10"
+                                 TextTrimming="CharacterEllipsis" />
+                    </Grid>
+                  </StackPanel>
+                </Border>
+
+                <!-- Action buttons -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                  <Button Content="Cancel" Classes="Ghost" Padding="14,6"
+                          Command="{Binding CloseActionInputsCommand}" />
+                  <Button Content="Run" Background="#2563eb" Foreground="#ffffff" Padding="20,6"
+                          FontWeight="SemiBold" CornerRadius="6"
+                          Command="{Binding ConfirmAndRunActionCommand}"
+                          IsEnabled="{Binding IsIdle}" />
+                </StackPanel>
+              </StackPanel>
+            </ScrollViewer>
+          </Border>
+        </Grid>
+      </Border>
+
+      <!-- ── Last Result popup ── -->
+      <Border Background="#0c0e14dd" IsVisible="{Binding LastResultExpanded}" Grid.RowSpan="3">
+        <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+          <Border Classes="Card" Padding="24" Width="560" MaxHeight="520">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+              <StackPanel Spacing="14">
+                <!-- Header with command name -->
+                <Grid ColumnDefinitions="*,Auto">
+                  <StackPanel Spacing="4">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <TextBlock Text="Result" FontWeight="SemiBold" FontSize="15" VerticalAlignment="Center" />
+                      <Border Classes="StatusPill" VerticalAlignment="Center" Padding="8,2"
+                              Background="#052e16" BorderBrush="#166534"
+                              IsVisible="{Binding ResultSummary, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                        <TextBlock Text="{Binding StatusText}" Foreground="#86efac" FontSize="10" FontWeight="SemiBold" />
+                      </Border>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="4"
+                                IsVisible="{Binding ActiveActionLabel, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                      <TextBlock Text="{Binding ActiveActionLabel}" FontSize="12" Foreground="#60a5fa" FontWeight="SemiBold" />
+                    </StackPanel>
+                  </StackPanel>
+                  <Button Grid.Column="1" Content="Close" Classes="Ghost" Padding="10,5"
+                          Command="{Binding CloseLastResultCommand}" />
+                </Grid>
+
+                <!-- Result summary -->
+                <Border Classes="CardInner" Padding="12">
+                  <StackPanel Spacing="6">
+                    <TextBlock Text="{Binding ResultSummary}" TextWrapping="Wrap" FontSize="13" />
+                    <TextBlock Text="{Binding ImpactSummary}" Classes="Sub" TextWrapping="Wrap" FontSize="11"
+                               IsVisible="{Binding ImpactSummary, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                  </StackPanel>
+                </Border>
+
+                <!-- Steps (if available) -->
+                <Border Classes="CardInner" Padding="12"
+                        IsVisible="{Binding StepsText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                  <StackPanel Spacing="6">
+                    <TextBlock Text="Steps" Classes="Heading" />
+                    <TextBox AcceptsReturn="True" Height="100" IsReadOnly="True"
+                             Text="{Binding StepsText}" Classes="Log"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto" />
+                  </StackPanel>
+                </Border>
+
+                <!-- Warnings -->
+                <Border Classes="CardInner" Padding="12" Background="#1c101280" BorderBrush="#7f1d1d40"
+                        IsVisible="{Binding WarningsText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                  <StackPanel Spacing="6">
+                    <TextBlock Text="Warnings" Foreground="#fca5a5" FontWeight="SemiBold" FontSize="11" />
+                    <TextBox AcceptsReturn="True" Height="80" IsReadOnly="True"
+                             Text="{Binding WarningsText}" Classes="Log"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto" />
+                  </StackPanel>
+                </Border>
+
+                <!-- Rollback snapshot -->
+                <Border Classes="CardInner" Padding="10" Background="#0a0c12"
+                        IsVisible="{Binding RollbackSnapshot, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                  <StackPanel Spacing="2">
+                    <TextBlock Text="Rollback Snapshot" Classes="Dim" FontSize="10" />
+                    <TextBlock Text="{Binding RollbackSnapshot}" Classes="Sub" FontSize="11"
+                               TextWrapping="Wrap" />
+                  </StackPanel>
+                </Border>
+              </StackPanel>
+            </ScrollViewer>
+          </Border>
+        </Grid>
+      </Border>
+    </Grid>
+
+    <!-- ══════════════════════════════════════ -->
+    <!--         SETUP WIZARD (multi-step)     -->
+    <!-- ══════════════════════════════════════ -->
+    <ScrollViewer IsVisible="{Binding IsSetupMode}" HorizontalScrollBarVisibility="Disabled">
+      <StackPanel Spacing="16" MaxWidth="560" HorizontalAlignment="Center" Margin="20,40,20,40">
+
+        <!-- Logo + title (always visible) -->
+        <StackPanel HorizontalAlignment="Center" Spacing="12">
+          <Border Width="56" Height="56" Background="#2563eb" CornerRadius="14" HorizontalAlignment="Center">
+            <TextBlock Text="C" Foreground="#ffffff" FontWeight="Bold" FontSize="24"
+                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+          </Border>
+          <StackPanel Spacing="2" HorizontalAlignment="Center">
+            <TextBlock Text="ReClaw Setup" FontSize="22" FontWeight="Bold" HorizontalAlignment="Center" />
+            <TextBlock Text="{Binding WizardStepIndicator}" Classes="Dim" HorizontalAlignment="Center" />
+          </StackPanel>
+        </StackPanel>
+
+        <!-- ── Agent message bubble ── -->
+        <Border Classes="CardInner" Background="#0f1a2e" BorderBrush="#1e3a5f" Padding="12,10"
+                IsVisible="{Binding WizardAgentMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                Margin="0,0,0,4">
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <Border Width="28" Height="28" Background="#2563eb" CornerRadius="14">
+              <TextBlock Text="C" Foreground="#ffffff" FontWeight="Bold" FontSize="12"
+                         HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+            <TextBlock Text="{Binding WizardAgentMessage}" Foreground="#93c5fd" FontSize="12"
+                       TextWrapping="Wrap" VerticalAlignment="Center" MaxWidth="460" />
+          </StackPanel>
+        </Border>
+
+        <!-- ── STEP 0: Welcome ── -->
+        <StackPanel Spacing="12" IsVisible="{Binding IsWizardWelcome}">
+          <Border Classes="Card">
+            <StackPanel Spacing="8">
+              <TextBlock Text="Welcome to OpenClaw" Classes="Heading" />
+              <TextBlock Text="{Binding SetupSummary}" Classes="Sub" TextWrapping="Wrap" />
+              <TextBlock Text="OpenClaw is your personal AI assistant that runs on your computer. It connects to an AI model, installs skills, and can chat via DingTalk, Feishu, QQ, Discord, or a web console."
+                         Classes="Sub" TextWrapping="Wrap" Margin="0,4,0,0" />
+            </StackPanel>
+          </Border>
+          <Border Classes="Card">
+            <StackPanel Spacing="6">
+              <TextBlock Text="Environment Detected" Classes="Heading" />
+              <TextBlock Text="{Binding SetupRuntimeText, StringFormat=System: {0}}" Classes="Sub" />
+              <TextBlock Text="{Binding SetupEnvironmentHint}" Classes="Sub" TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+          <Button Content="Get Started (Guided Setup)" Classes="Primary" HorizontalAlignment="Stretch"
+                  HorizontalContentAlignment="Center" Padding="0,12"
+                  Command="{Binding WizardNextCommand}" />
+          <Grid ColumnDefinitions="*,*,*">
+            <Button Grid.Column="0" Content="Manual Install" HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Center" Padding="0,10" Margin="0,0,4,0"
+                    Command="{Binding WizardManualInstallCommand}" IsEnabled="{Binding IsSetupIdle}" />
+            <Button Grid.Column="1" Content="Restore Backup" HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Center" Padding="0,10" Margin="2,0,2,0"
+                    Command="{Binding RunSetupRestoreCommand}" IsEnabled="{Binding IsSetupIdle}" />
+            <Button Grid.Column="2" Content="Skip" Classes="Ghost" HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Center" Padding="0,10" Margin="4,0,0,0"
+                    Command="{Binding SkipSetupCommand}" IsEnabled="{Binding IsSetupIdle}" />
+          </Grid>
+          <!-- Restore options -->
+          <Expander Header="Restore options" IsExpanded="{Binding ShowSetupRestoreOptions}">
+            <Border Classes="CardInner" Margin="0,6,0,0">
+              <StackPanel Spacing="6">
+                <TextBox Watermark="Archive path" Text="{Binding ArchivePath}" />
+                <TextBox Watermark="Destination path" Text="{Binding DestinationPath}" />
+                <TextBox Watermark="Scope" Text="{Binding Scope}" />
+                <TextBox Watermark="Password (optional)" Text="{Binding Password}" />
+                <StackPanel Orientation="Horizontal" Spacing="14">
+                  <CheckBox Content="Preview" IsChecked="{Binding Preview}" />
+                  <CheckBox Content="Safe reset" IsChecked="{Binding SafeReset}" />
+                </StackPanel>
+              </StackPanel>
+            </Border>
+          </Expander>
+        </StackPanel>
+
+        <!-- ── STEP 1: AI Provider Selection ── -->
+        <StackPanel Spacing="12" IsVisible="{Binding IsWizardProvider}">
+          <Border Classes="Card">
+            <StackPanel Spacing="8">
+              <TextBlock Text="Choose Your AI Provider" Classes="Heading" />
+              <TextBlock Text="OpenClaw uses AI models for chat, code generation, and automation. Pick a provider below or skip this step." Classes="Sub" TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+
+          <!-- Provider buttons -->
+          <Border Classes="Card" Padding="8">
+            <StackPanel Spacing="4">
+              <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="12,10"
+                      Command="{Binding SelectProviderCommand}" CommandParameter="deepseek"
+                      Classes="ActionCard">
+                <Grid ColumnDefinitions="28,*">
+                  <TextBlock Text="🚀" FontSize="14" VerticalAlignment="Center" />
+                  <StackPanel Grid.Column="1" Spacing="1">
+                    <TextBlock Text="DeepSeek" FontWeight="SemiBold" FontSize="13" />
+                    <TextBlock Text="Free trial credits · Great for getting started" Classes="Dim" FontSize="10" />
+                  </StackPanel>
+                </Grid>
+              </Button>
+              <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="12,10"
+                      Command="{Binding SelectProviderCommand}" CommandParameter="anthropic"
+                      Classes="ActionCard">
+                <Grid ColumnDefinitions="28,*">
+                  <TextBlock Text="🧠" FontSize="14" VerticalAlignment="Center" />
+                  <StackPanel Grid.Column="1" Spacing="1">
+                    <TextBlock Text="Anthropic (Claude)" FontWeight="SemiBold" FontSize="13" />
+                    <TextBlock Text="Powerful reasoning · Requires API key" Classes="Dim" FontSize="10" />
+                  </StackPanel>
+                </Grid>
+              </Button>
+              <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="12,10"
+                      Command="{Binding SelectProviderCommand}" CommandParameter="openai"
+                      Classes="ActionCard">
+                <Grid ColumnDefinitions="28,*">
+                  <TextBlock Text="⚡" FontSize="14" VerticalAlignment="Center" />
+                  <StackPanel Grid.Column="1" Spacing="1">
+                    <TextBlock Text="OpenAI (GPT)" FontWeight="SemiBold" FontSize="13" />
+                    <TextBlock Text="GPT-4o and beyond · Requires API key" Classes="Dim" FontSize="10" />
+                  </StackPanel>
+                </Grid>
+              </Button>
+              <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="12,10"
+                      Command="{Binding SelectProviderCommand}" CommandParameter="bailian"
+                      Classes="ActionCard">
+                <Grid ColumnDefinitions="28,*">
+                  <TextBlock Text="☁" FontSize="14" VerticalAlignment="Center" />
+                  <StackPanel Grid.Column="1" Spacing="1">
+                    <TextBlock Text="Alibaba Bailian" FontWeight="SemiBold" FontSize="13" />
+                    <TextBlock Text="Tongyi Qianwen · Requires API key" Classes="Dim" FontSize="10" />
+                  </StackPanel>
+                </Grid>
+              </Button>
+              <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="12,10"
+                      Command="{Binding SelectProviderCommand}" CommandParameter="bailian-coding"
+                      Classes="ActionCard">
+                <Grid ColumnDefinitions="28,*">
+                  <TextBlock Text="🆓" FontSize="14" VerticalAlignment="Center" />
+                  <StackPanel Grid.Column="1" Spacing="1">
+                    <TextBlock Text="Bailian Coding Plan (Free)" FontWeight="SemiBold" FontSize="13"
+                               Foreground="#4ade80" />
+                    <TextBlock Text="No API key needed · Free coding tier" Classes="Dim" FontSize="10" />
+                  </StackPanel>
+                </Grid>
+              </Button>
+              <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="12,10"
+                      Command="{Binding SelectProviderCommand}" CommandParameter="none"
+                      Classes="ActionCard">
+                <Grid ColumnDefinitions="28,*">
+                  <TextBlock Text="⏭" FontSize="14" VerticalAlignment="Center" />
+                  <StackPanel Grid.Column="1" Spacing="1">
+                    <TextBlock Text="Skip AI Setup" FontWeight="SemiBold" FontSize="13" />
+                    <TextBlock Text="Configure later in OpenClaw settings" Classes="Dim" FontSize="10" />
+                  </StackPanel>
+                </Grid>
+              </Button>
+            </StackPanel>
+          </Border>
+
+          <!-- Provider info -->
+          <Border Classes="CardInner" IsVisible="{Binding WizardProviderInfo, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+            <TextBlock Text="{Binding WizardProviderInfo}" Classes="Sub" TextWrapping="Wrap" />
+          </Border>
+
+          <!-- No API key? Help text -->
+          <Border Classes="Card" Background="#0f1a2e" BorderBrush="#1e3a5f">
+            <StackPanel Spacing="6">
+              <TextBlock Text="Don't have an API key?" FontWeight="SemiBold" FontSize="12" Foreground="#60a5fa" />
+              <TextBlock TextWrapping="Wrap" Classes="Sub" FontSize="11"
+                         Text="Try DeepSeek (free trial credits) or Bailian Coding Plan (completely free). You can always change providers later." />
+            </StackPanel>
+          </Border>
+
+          <!-- Nav -->
+          <Grid ColumnDefinitions="*,*">
+            <Button Grid.Column="0" Content="Back" HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Center" Padding="0,10" Margin="0,0,4,0"
+                    Command="{Binding WizardBackCommand}" />
+            <Button Grid.Column="1" Content="Next" Classes="Primary" HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Center" Padding="0,10" Margin="4,0,0,0"
+                    Command="{Binding WizardNextCommand}" />
+          </Grid>
+        </StackPanel>
+
+        <!-- ── STEP 2: API Key Entry ── -->
+        <StackPanel Spacing="12" IsVisible="{Binding IsWizardApiKey}">
+          <Border Classes="Card">
+            <StackPanel Spacing="8">
+              <TextBlock Text="{Binding WizardApiKeyLabel}" Classes="Heading" />
+              <TextBlock Text="Paste your API key below. It will be stored securely in your OpenClaw configuration."
+                         Classes="Sub" TextWrapping="Wrap" />
+              <TextBox Watermark="sk-..." Text="{Binding WizardApiKey, Mode=TwoWay}"
+                       PasswordChar="*" RevealPassword="False" Margin="0,4,0,0" />
+            </StackPanel>
+          </Border>
+
+          <Grid ColumnDefinitions="*,*">
+            <Button Grid.Column="0" Content="Back" HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Center" Padding="0,10" Margin="0,0,4,0"
+                    Command="{Binding WizardBackCommand}" />
+            <Button Grid.Column="1" Content="Install OpenClaw" Classes="Primary" HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Center" Padding="0,10" Margin="4,0,0,0"
+                    Command="{Binding WizardNextCommand}" IsEnabled="{Binding IsSetupIdle}" />
+          </Grid>
+        </StackPanel>
+
+        <!-- ── STEP 3: Use Cases + Skills + IM ── -->
+        <StackPanel Spacing="12" IsVisible="{Binding IsWizardUseCase}">
+          <Border Classes="Card">
+            <StackPanel Spacing="8">
+              <TextBlock Text="What do you want OpenClaw to do?" Classes="Heading" />
+              <TextBlock Text="Pick one or more. I'll install the right skills automatically." Classes="Sub" TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+
+          <Border Classes="Card" Padding="10">
+            <StackPanel Spacing="6">
+              <CheckBox IsChecked="{Binding UseCaseProductivity}">
+                <StackPanel Spacing="1">
+                  <TextBlock Text="Daily Productivity Assistant" FontWeight="SemiBold" FontSize="12" />
+                  <TextBlock Text="Docs, scheduling, notes, summaries, weather" Classes="Dim" FontSize="10" />
+                </StackPanel>
+              </CheckBox>
+              <CheckBox IsChecked="{Binding UseCaseTracker}">
+                <StackPanel Spacing="1">
+                  <TextBlock Text="Information Tracker" FontWeight="SemiBold" FontSize="12" />
+                  <TextBlock Text="News, research, web monitoring, alerts" Classes="Dim" FontSize="10" />
+                </StackPanel>
+              </CheckBox>
+              <CheckBox IsChecked="{Binding UseCaseEfficiency}">
+                <StackPanel Spacing="1">
+                  <TextBlock Text="Efficiency Tools" FontWeight="SemiBold" FontSize="12" />
+                  <TextBlock Text="Task automation, reminders, workflows" Classes="Dim" FontSize="10" />
+                </StackPanel>
+              </CheckBox>
+              <CheckBox IsChecked="{Binding UseCaseStocks}">
+                <StackPanel Spacing="1">
+                  <TextBlock Text="Stock Market Analysis" FontWeight="SemiBold" FontSize="12" />
+                  <TextBlock Text="A-shares, US stocks, market news, technical analysis" Classes="Dim" FontSize="10" />
+                </StackPanel>
+              </CheckBox>
+            </StackPanel>
+          </Border>
+
+          <!-- IM Platform -->
+          <Border Classes="Card">
+            <StackPanel Spacing="8">
+              <TextBlock Text="Connect a chat app? (optional)" Classes="Heading" />
+              <TextBlock Text="Chat with OpenClaw from your phone or desktop. You can add more later." Classes="Sub" TextWrapping="Wrap" />
+              <StackPanel Spacing="3">
+                <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="10,8"
+                        Command="{Binding SelectImPlatformCommand}" CommandParameter="dingtalk" Classes="ActionCard">
+                  <TextBlock FontSize="12"><Run Text="DingTalk" FontWeight="SemiBold" /><Run Text="  Best supported" Foreground="#52525b" FontSize="10" /></TextBlock>
+                </Button>
+                <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="10,8"
+                        Command="{Binding SelectImPlatformCommand}" CommandParameter="feishu" Classes="ActionCard">
+                  <TextBlock Text="Feishu" FontSize="12" FontWeight="SemiBold" />
+                </Button>
+                <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="10,8"
+                        Command="{Binding SelectImPlatformCommand}" CommandParameter="qq" Classes="ActionCard">
+                  <TextBlock Text="QQ" FontSize="12" FontWeight="SemiBold" />
+                </Button>
+                <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="10,8"
+                        Command="{Binding SelectImPlatformCommand}" CommandParameter="discord" Classes="ActionCard">
+                  <TextBlock Text="Discord" FontSize="12" FontWeight="SemiBold" />
+                </Button>
+                <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="10,8"
+                        Command="{Binding SelectImPlatformCommand}" CommandParameter="none" Classes="ActionCard">
+                  <TextBlock FontSize="12"><Run Text="Skip" /><Run Text="  Use web console only" Foreground="#52525b" FontSize="10" /></TextBlock>
+                </Button>
+              </StackPanel>
+            </StackPanel>
+          </Border>
+
+          <Grid ColumnDefinitions="*,*">
+            <Button Grid.Column="0" Content="Back" HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Center" Padding="0,10" Margin="0,0,4,0"
+                    Command="{Binding WizardBackCommand}" />
+            <Button Grid.Column="1" Content="Review Plan" Classes="Primary" HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Center" Padding="0,10" Margin="4,0,0,0"
+                    Command="{Binding WizardNextCommand}" />
+          </Grid>
+        </StackPanel>
+
+        <!-- ── STEP 4: Confirmation ── -->
+        <StackPanel Spacing="12" IsVisible="{Binding IsWizardConfirm}">
+          <Border Classes="Card">
+            <StackPanel Spacing="8">
+              <TextBlock Text="Confirm Your Setup Plan" Classes="Heading" FontSize="14" />
+              <TextBox AcceptsReturn="True" IsReadOnly="True" Height="120"
+                       Text="{Binding WizardConfirmSummary}" Classes="Log" />
+            </StackPanel>
+          </Border>
+
+          <Border Classes="Card" IsVisible="{Binding WizardSkillsList, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+            <StackPanel Spacing="6">
+              <TextBlock Text="Skills to Install" Classes="Heading" />
+              <TextBlock Text="{Binding WizardSkillsList}" Classes="Sub" FontSize="11" />
+            </StackPanel>
+          </Border>
+
+          <!-- Architecture diagram -->
+          <Border Classes="CardInner" Padding="12">
+            <StackPanel Spacing="6">
+              <TextBlock Text="How it works" Classes="Heading" FontSize="11" />
+              <TextBlock FontFamily="JetBrains Mono, Cascadia Code, Consolas, monospace" FontSize="9"
+                         Foreground="#71717a" TextWrapping="NoWrap"
+                         Text="You (chat app) &#x2192; OpenClaw Gateway &#x2192; AI Model&#x0a;                    &#x2502;&#x0a;              Skills + Plugins" />
+            </StackPanel>
+          </Border>
+
+          <Grid ColumnDefinitions="*,*">
+            <Button Grid.Column="0" Content="Edit Choices" HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Center" Padding="0,10" Margin="0,0,4,0"
+                    Command="{Binding WizardBackCommand}" />
+            <Button Grid.Column="1" Content="Install Now" Classes="Primary" HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Center" Padding="0,12" Margin="4,0,0,0" FontWeight="SemiBold"
+                    Command="{Binding WizardNextCommand}" IsEnabled="{Binding IsSetupIdle}" />
+          </Grid>
+        </StackPanel>
+
+        <!-- ── STEP 5: Installing ── -->
+        <StackPanel Spacing="12" IsVisible="{Binding IsWizardInstalling}">
+          <Border Classes="Card">
+            <StackPanel Spacing="8">
+              <TextBlock Text="Installing OpenClaw..." Classes="Heading" />
+              <ProgressBar IsIndeterminate="True" Height="4" />
+              <TextBlock Text="This may take a few minutes. The setup will install OpenClaw, configure the gateway, and run security checks."
+                         Classes="Sub" TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+
+          <Border Classes="Card" IsVisible="{Binding SetupStepsText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+            <StackPanel Spacing="8">
+              <TextBlock Text="Progress" Classes="Heading" />
+              <TextBox AcceptsReturn="True" Height="160" IsReadOnly="True"
+                       Text="{Binding SetupStepsText}" Classes="Log" />
+            </StackPanel>
+          </Border>
+
+          <Border Classes="Card" IsVisible="{Binding Logs, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+            <StackPanel Spacing="6">
+              <TextBlock Text="Live Logs" Classes="Heading" />
+              <TextBox AcceptsReturn="True" Height="140" IsReadOnly="True"
+                       Text="{Binding Logs}" Classes="Log"
+                       ScrollViewer.VerticalScrollBarVisibility="Auto" />
+            </StackPanel>
+          </Border>
+        </StackPanel>
+
+        <!-- ── STEP 6: Done ── -->
+        <StackPanel Spacing="12" IsVisible="{Binding IsWizardDone}">
+          <Border Classes="Card">
+            <StackPanel Spacing="8">
+              <TextBlock Text="Setup Complete" Classes="Heading" FontSize="16" />
+              <TextBlock Text="{Binding SetupSummary}" Classes="Sub" TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+
+          <!-- Security status -->
+          <Border Classes="Card">
+            <StackPanel Spacing="6">
+              <TextBlock Text="Security" Classes="Heading" />
+              <Border Classes="StatusPill" HorizontalAlignment="Left" IsVisible="{Binding IsSetupSecuritySafe}"
+                      Background="#052e16" BorderBrush="#166534">
+                <TextBlock Text="{Binding SetupSecurityStatus}" Foreground="#86efac" FontSize="10" />
+              </Border>
+              <Border Classes="StatusPill" HorizontalAlignment="Left" IsVisible="{Binding IsSetupSecurityWarning}"
+                      Background="#422006" BorderBrush="#92400e">
+                <TextBlock Text="{Binding SetupSecurityStatus}" Foreground="#fde68a" FontSize="10" />
+              </Border>
+              <Border Classes="StatusPill" HorizontalAlignment="Left" IsVisible="{Binding IsSetupSecurityCritical}"
+                      Background="#1c1012" BorderBrush="#7f1d1d">
+                <TextBlock Text="{Binding SetupSecurityStatus}" Foreground="#fca5a5" FontSize="10" />
+              </Border>
+              <Border Classes="StatusPill" HorizontalAlignment="Left" IsVisible="{Binding IsSetupSecurityNotRun}"
+                      Background="#13151c" BorderBrush="#1e2028">
+                <TextBlock Text="{Binding SetupSecurityStatus}" FontSize="10" Classes="Dim" />
+              </Border>
+              <TextBox AcceptsReturn="True" Height="80" IsReadOnly="True"
+                       Text="{Binding SetupSecurityDetails}" Classes="Log"
+                       IsVisible="{Binding SetupSecurityDetails, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+            </StackPanel>
+          </Border>
+
+          <!-- Gateway status -->
+          <Border Classes="Card">
+            <Grid ColumnDefinitions="*,Auto">
+              <StackPanel Spacing="4">
+                <TextBlock Text="Gateway" Classes="Heading" />
+                <Border Classes="StatusPill" HorizontalAlignment="Left" IsVisible="{Binding IsGatewayHealthy}"
+                        Background="#052e16" BorderBrush="#166534">
+                  <TextBlock Text="Healthy" Foreground="#86efac" FontSize="10" />
+                </Border>
+                <Border Classes="StatusPill" HorizontalAlignment="Left" IsVisible="{Binding IsGatewayUnhealthy}"
+                        Background="#1c1012" BorderBrush="#7f1d1d">
+                  <TextBlock Text="Needs Attention" Foreground="#fca5a5" FontSize="10" />
+                </Border>
+              </StackPanel>
+              <Button Grid.Column="1" Content="Open Dashboard" Classes="Primary" Padding="14,8"
+                      VerticalAlignment="Center"
+                      Command="{Binding RunDashboardOpenCommand}" IsEnabled="{Binding IsGatewayHealthy}" />
+            </Grid>
+          </Border>
+
+          <Button Content="Continue to ReClaw" Classes="Primary" HorizontalAlignment="Stretch"
+                  HorizontalContentAlignment="Center" Padding="0,12"
+                  Command="{Binding SkipSetupCommand}" />
+        </StackPanel>
+
+      </StackPanel>
+    </ScrollViewer>
+
+    <!-- ══════════════════════════════════════ -->
+    <!--          TRAY SETTINGS POPUP          -->
+    <!-- ══════════════════════════════════════ -->
+    <Border Background="#0c0e14dd" IsVisible="{Binding TraySettingsOpen}">
+      <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+        <Border Classes="Card" Padding="20" Width="440" MaxHeight="500">
+          <StackPanel Spacing="12">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Text="Tray Quick Commands" FontWeight="SemiBold" FontSize="14" />
+              <Button Grid.Column="1" Content="Done" Classes="Ghost" Padding="10,4"
+                      Command="{Binding CloseTraySettingsCommand}" />
+            </Grid>
+            <TextBlock Text="Pick which commands appear in the system tray right-click menu."
+                       Classes="Sub" TextWrapping="Wrap" FontSize="11" />
+            <CheckBox Content="Minimize to tray on close" IsChecked="{Binding MinimizeToTray}"
+                      Margin="0,0,0,4" />
+            <ScrollViewer MaxHeight="300" VerticalScrollBarVisibility="Auto">
+              <ItemsControl ItemsSource="{Binding TrayCommandItems}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <StackPanel Spacing="2" />
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <CheckBox IsChecked="{Binding IsEnabled}">
+                      <StackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBlock Text="{Binding Emoji}" FontSize="11" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding Label}" FontSize="11" VerticalAlignment="Center" />
+                      </StackPanel>
+                    </CheckBox>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </ScrollViewer>
+          </StackPanel>
+        </Border>
+      </Grid>
+    </Border>
+
+    <!-- ══════════════════════════════════════ -->
+    <!--        CONFIRMATION DIALOG            -->
+    <!-- ══════════════════════════════════════ -->
+    <Border Background="#0c0e14cc" IsVisible="{Binding IsConfirmDialogOpen}">
+      <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+        <Border Classes="Card" Padding="24" Width="420">
+          <StackPanel Spacing="14">
+            <TextBlock Text="{Binding ConfirmDialogTitle}" FontWeight="SemiBold" FontSize="15" />
+            <TextBlock Text="{Binding ConfirmDialogMessage}" Classes="Sub" TextWrapping="Wrap" />
+            <TextBox Watermark="Type confirm phrase"
+                     Text="{Binding ConfirmDialogInput}"
+                     IsVisible="{Binding ConfirmDialogHasPhrase}" />
+            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+              <Button Content="Cancel" Command="{Binding ConfirmDialogCancelCommand}" Padding="16,8" />
+              <Button Content="Confirm" Classes="Primary" Padding="16,8"
+                      Command="{Binding ConfirmDialogConfirmCommand}"
+                      IsEnabled="{Binding ConfirmDialogCanConfirm}" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
+      </Grid>
+    </Border>
+  </Grid>
+</Window>

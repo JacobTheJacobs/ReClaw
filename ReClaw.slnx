@@ -1,0 +1,11 @@
+<Solution>
+  <Project Path="src/ReClaw.Core/ReClaw.Core.csproj" />
+  <Project Path="src/ReClaw.App/ReClaw.App.csproj" />
+  <Project Path="src/ReClaw.Desktop/ReClaw.Desktop.csproj" />
+  <Project Path="src/ReClaw.Cli/ReClaw.Cli.csproj" />
+  <Project Path="tests/ReClaw.Core.Tests/ReClaw.Core.Tests.csproj" />
+  <Project Path="tests/ReClaw.App.Tests/ReClaw.App.Tests.csproj" />
+  <Project Path="tests/ReClaw.Desktop.Tests/ReClaw.Desktop.Tests.csproj" />
+  <Project Path="tests/ReClaw.Cli.Tests/ReClaw.Cli.Tests.csproj" />
+  <Project Path="tests/ReClaw.Interop.Tests/ReClaw.Interop.Tests.csproj" />
+</Solution>

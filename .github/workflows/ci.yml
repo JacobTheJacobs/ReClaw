@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-test:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            rid: win-x64
+          - os: ubuntu-latest
+            rid: linux-x64
+          - os: macos-latest
+            rid: osx-arm64
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore
+        run: dotnet restore ReClaw.slnx
+
+      - name: Build
+        run: dotnet build ReClaw.slnx -c Release --no-restore
+
+      - name: Test
+        run: dotnet test ReClaw.slnx -c Release --no-build --filter "Category!=Live"
+
+      - name: Publish Desktop
+        run: dotnet publish src/ReClaw.Desktop/ReClaw.Desktop.csproj -c Release -r ${{ matrix.rid }} --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish/${{ matrix.rid }}
+
+      - name: Publish CLI
+        run: dotnet publish src/ReClaw.Cli/ReClaw.Cli.csproj -c Release -r ${{ matrix.rid }} --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish/${{ matrix.rid }}-cli
+
+      - name: Upload Desktop
+        uses: actions/upload-artifact@v4
+        with:
+          name: ReClaw-Desktop-${{ matrix.rid }}
+          path: publish/${{ matrix.rid }}/
+
+      - name: Upload CLI
+        uses: actions/upload-artifact@v4
+        with:
+          name: ReClaw-Cli-${{ matrix.rid }}
+          path: publish/${{ matrix.rid }}-cli/
